@@ -16,6 +16,7 @@ import sys
 import os
 import json
 import re
+import io
 
 try:
     from urllib.request import Request, urlopen
@@ -167,7 +168,17 @@ def make_request(method, base_url, token, path, body=None):
         }
 
 
+def _ensure_stdout_utf8():
+    """强制 stdout/stderr 使用 UTF-8 编码，避免中文乱码"""
+    if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+
 def main():
+    _ensure_stdout_utf8()
+
     if len(sys.argv) < 3:
         print('用法: python3 api.py <METHOD> <PATH> [JSON_BODY]')
         print('示例: python3 api.py GET /cases')
