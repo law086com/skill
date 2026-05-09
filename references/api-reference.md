@@ -186,12 +186,16 @@ V2 将 V1 的 PUT 改为 PATCH，支持更多可更新字段。
 | status | string | 否 | 案件状态文本 |
 | g_status | int | 否 | 全局状态: 1=在办, 2=结案, 3=归档 |
 | stage_text | string | 否 | 当前阶段文本 |
-| case_mark | string | 否 | 案件备注 |
-| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要 |
+| case_mark | string | 否 | 案件备注（允许清空） |
+| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要（只允许这三个值） |
 | fee_type | int | 否 | 收费类型 |
 | anyou | string | 否 | 案由 |
 | unit_name | string | 否 | 受理单位名称 |
 | unit_type | int | 否 | 受理单位类型 |
+| process_code | int | 否 | 审理程序代码（只允许 GET /enums 返回的合法值） |
+| anhao | string | 否 | 案号（最大 200 字） |
+| charge_desc | string | 否 | 收费描述（最大 2000 字，允许清空） |
+| current_stage_id | string | 否 | 当前阶段 ID（hashid，必须属于当前案件） |
 
 > 至少提供一个字段。更新前须向用户展示变更摘要并确认。
 
@@ -344,6 +348,8 @@ Scope: `calendar.read`
 | linkid | string | 关联资源 ID（hashid 编码） |
 | hstatus | int | 状态: 0=待办, 1=已办 |
 | hstatus_text | string | 状态文本：待办/已办 |
+| time_cost | int | 时间花费（小时，保留1位小数） |
+| time_cost_text | string | 时间花费可读格式，如 "1.5小时"、"0小时" |
 | case_name | string | 关联案件名称（仅 type=1 时有值） |
 | allday | int | 是否全天: 0=否, 1=是 |
 | remind_time | string | 提醒时间 |
@@ -363,13 +369,14 @@ Scope: `calendar.write`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| title | string | 是 | 日程标题（最大 200 字符） |
+| title | string | 是 | 日程标题（最大 200 字符，不可为空） |
 | htime | string | 是 | 开始时间 (YYYY-MM-DD HH:mm) |
-| endtime | string | 是 | 结束时间 (YYYY-MM-DD HH:mm) |
+| endtime | string | 是 | 结束时间 (YYYY-MM-DD HH:mm)，必须 >= htime |
 | content | string | 否 | 日程内容 |
 | linkid | int | 否 | 关联案件/项目/客户 ID |
-| type | int | 否 | 关联类型: 0=不关联, 1=案件, 2=项目, 3=客户 |
+| type | int | 否 | 关联类型: 0=不关联, 1=案件, 2=项目, 3=客户（只允许这四个值） |
 | rtype | string | 否 | 工作摘要/分类 |
+| time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
 | allday | int | 否 | 是否全天: 0=否, 1=是 |
 | remind_time | string | 否 | 提醒时间 |
 
@@ -384,11 +391,12 @@ Scope: `calendar.write`
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | id | int | 是 | 路径参数，日程 ID |
-| title | string | 否 | 日程标题 |
-| htime | string | 否 | 开始时间 |
-| endtime | string | 否 | 结束时间 |
-| content | string | 否 | 日程内容 |
-| hstatus | int | 否 | 状态: 0=待办, 1=已办 |
+| title | string | 否 | 日程标题（不可传空值） |
+| htime | string | 否 | 开始时间（格式必须合法） |
+| endtime | string | 否 | 结束时间（必须 >= htime） |
+| content | string | 否 | 日程内容（允许清空） |
+| hstatus | int | 否 | 状态: 0=待办, 1=已办（只允许这两个值） |
+| time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
 | linkid | int | 否 | 关联资源 ID |
 | type | int | 否 | 关联类型 |
 
@@ -508,22 +516,22 @@ Scope: `clients.write`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| name | string | 否 | 客户名称 |
-| mark | int | 否 | 标识: 1=单位, 2=个人 |
-| type | int | 否 | 类型: 1=签约, 2=意向, 3=潜在, 4=终止 |
-| degree | int | 否 | 等级: 1=次要, 2=一般, 3=重要, 4=核心 |
-| address | string | 否 | 地址 |
-| description | string | 否 | 描述/备注 |
-| contact | string | 否 | 联系方式 |
-| card_num | string | 否 | 证件号码/统一社会信用代码 |
+| name | string | 否 | 客户名称（不可传空值，最大 200 字） |
+| mark | int | 否 | 标识: 1=单位, 2=个人（只允许这两个值） |
+| type | int | 否 | 类型: 1=签约, 2=意向, 3=潜在, 4=终止（只允许这四个值） |
+| degree | int | 否 | 等级: 1=次要, 2=一般, 3=重要, 4=核心（只允许这四个值） |
+| address | string | 否 | 地址（最大 500 字） |
+| description | string | 否 | 描述/备注（最大 2000 字） |
+| contact | string | 否 | 联系方式（最大 100 字） |
+| card_num | string | 否 | 证件号码/统一社会信用代码（最大 50 字） |
 | industry | string | 否 | 行业 ID |
 | from | int | 否 | 来源分类 ID |
-| from_text | string | 否 | 来源文本 |
-| legal_per | string | 否 | 法人代表（单位） |
-| sex | int | 否 | 性别: 0=男, 1=女（个人） |
-| nation | string | 否 | 民族（个人） |
+| from_text | string | 否 | 来源文本（最大 100 字） |
+| legal_per | string | 否 | 法人代表（单位，最大 50 字） |
+| sex | int | 否 | 性别: 0=未知, 1=男, 2=女（只允许这三个值） |
+| nation | string | 否 | 民族（个人，最大 30 字） |
 | c_start_time | string | 否 | 合同起始日期 |
-| c_end_time | string | 否 | 合同终止日期 |
+| c_end_time | string | 否 | 合同终止日期（必须 >= c_start_time） |
 
 **响应**: 返回更新后的客户详情（同 GET /clients/{code}）。
 
@@ -558,6 +566,8 @@ Scope: `records.read`
 | huser_text | string | 负责人姓名 |
 | assit | string | 协助人 uid 列表 (hashid, 逗号分隔) |
 | assit_text | string | 协助人姓名列表 (逗号分隔) |
+| time_cost | int | 时间花费（小时，保留1位小数） |
+| time_cost_text | string | 时间花费可读格式，如 "1.5小时" |
 | linkid | string | 关联 ID (hashid) |
 | stage | string | 阶段 ID (hashid) |
 | stage_name | string | 阶段名称 |
@@ -571,11 +581,12 @@ Scope: `records.write`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| title | string | 否 | 标题 |
-| content | string | 否 | 内容 |
-| hstatus | int | 否 | 状态: 0=待办, 1=已办 |
-| htime | string | 否 | 开始时间 (YYYY-MM-DD HH:mm:ss) |
-| endtime | string | 否 | 结束时间 (YYYY-MM-DD HH:mm:ss) |
+| title | string | 否 | 标题（不可传空值） |
+| content | string | 否 | 内容（允许清空） |
+| hstatus | int | 否 | 状态: 0=待办, 1=已办（只允许这两个值） |
+| htime | string | 否 | 开始时间 (YYYY-MM-DD HH:mm:ss)，格式必须合法 |
+| endtime | string | 否 | 结束时间，必须 >= htime |
+| time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
 | stage | string | 否 | 阶段 ID (hashid) |
 
 **响应**: 返回更新后的记录详情（同 GET /records/{id}）。
@@ -667,16 +678,16 @@ Scope: `projects.write`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| pr_name | string | 否 | 项目名称 |
+| pr_name | string | 否 | 项目名称（不可传空值，最大 200 字） |
 | pr_type | int | 否 | 项目类型（category ID） |
-| pr_status | int | 否 | 状态: 1=进行中, 2=已结束 |
+| pr_status | int | 否 | 状态: 1=进行中, 2=已结束（只允许这两个值） |
 | start_time | string | 否 | 开始时间 |
-| end_time | string | 否 | 结束时间 |
+| end_time | string | 否 | 结束时间（必须 >= start_time） |
 | stage_text | string | 否 | 当前阶段 |
-| require_des | string | 否 | 需求描述 |
+| require_des | string | 否 | 需求描述（最大 2000 字） |
 | funding | decimal | 否 | 经费 |
-| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要 |
-| mark | string | 否 | 备注 |
+| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要（只允许这三个值） |
+| mark | string | 否 | 备注（最大 500 字） |
 
 > 至少提供一个字段。
 

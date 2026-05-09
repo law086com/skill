@@ -107,8 +107,8 @@ python3 .claude/skills/law086/scripts/api.py PATCH /records/xyz789 '{"hstatus":1
 |------|------|-------|------|
 | GET | /team/members | calendar.read | 团队成员列表（返回 uid 和姓名，uid 为 hashid 编码）。个人空间下不可用 |
 | GET | /calendar | calendar.read | 日程列表。使用 `start_date`/`end_date` 过滤（格式 YYYY-MM-DD）；`is_team=1` 查看团队日程（团队版以上）；`uids` 指定团队成员（用 `/team/members` 返回的 hashid，逗号分隔） |
-| POST | /calendar | calendar.write | 创建日程。需 `title`、`htime`、`endtime`；可选 `content`、`linkid`+`type` 关联案件/项目 |
-| PUT | /calendar/{id} | calendar.write | 更新日程 |
+| POST | /calendar | calendar.write | 创建日程。需 `title`、`htime`、`endtime`；可选 `content`、`linkid`+`type` 关联案件/项目、`time_cost` 时间花费（分钟） |
+| PUT | /calendar/{id} | calendar.write | 更新日程。支持 `title`、`content`、`htime`、`endtime`、`hstatus`、`time_cost` |
 
 ### 客户 (clients.read / clients.write)
 
@@ -124,7 +124,7 @@ python3 .claude/skills/law086/scripts/api.py PATCH /records/xyz789 '{"hstatus":1
 | 方法 | 路径 | Scope | 说明 |
 |------|------|-------|------|
 | GET | /records/{id} | records.read | 记录详情（通过记录 hashid 直接获取，无需知道所属案件/项目） |
-| PATCH | /records/{id} | records.write | 更新记录。支持: `title`、`content`、`hstatus`(0=待办/1=已办)、`htime`、`endtime`、`stage` |
+| PATCH | /records/{id} | records.write | 更新记录。支持: `title`、`content`、`hstatus`(0=待办/1=已办)、`htime`、`endtime`、`time_cost`(分钟)、`stage` |
 
 ### 项目 (projects.read / projects.write)
 
