@@ -374,7 +374,7 @@ Scope: `calendar.write`
 | endtime | string | 是 | 结束时间 (YYYY-MM-DD HH:mm)，必须 >= htime |
 | content | string | 否 | 日程内容 |
 | linkid | int | 否 | 关联案件/项目/客户 ID |
-| type | int | 否 | 关联类型: 0=不关联, 1=案件, 2=项目, 3=客户（只允许这四个值） |
+| type | int | 是 | 关联类型: 0=不关联, 1=案件, 2=项目, 3=客户（只允许这四个值） |
 | rtype | string | 否 | 工作摘要/分类 |
 | time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
 | allday | int | 否 | 是否全天: 0=否, 1=是 |
