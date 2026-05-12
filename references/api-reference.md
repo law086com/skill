@@ -404,20 +404,6 @@ Scope: `calendar.write`
 
 **响应**: 返回更新后的日程数据。
 
-### DELETE /calendar/{id} - 删除日程
-
-Scope: `calendar.write` | **需二次确认**
-
-**参数**:
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| id | int | 是 | 路径参数，日程 ID |
-
-> 删除前须向用户确认。同时会删除关联的文书文件。
-
-**响应**: 返回删除结果。
-
 ---
 
 ## Clients 客户
@@ -909,7 +895,7 @@ Scope: 任意已授权 scope
 | cases.read | 查看案件列表、详情、搜索 | GET /cases, GET /cases/{id}, GET /cases/{id}/stages, GET /cases/{id}/records, GET /search |
 | cases.write | 更新案件、添加办案记录 | PATCH /cases/{id}, POST /cases/{id}/records |
 | calendar.read | 查看日程和团队成员 | GET /team/members, GET /calendar |
-| calendar.write | 创建/更新/删除日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
+| calendar.write | 创建/更新/日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
 | clients.read | 查看客户信息和联系人 | GET /clients, GET /clients/{id}, GET /clients/{id}/contacts |
 | projects.read | 查看项目列表和详情 | GET /projects, GET /projects/{code} |
 | projects.write | 更新项目信息 | PATCH /projects/{code} |
