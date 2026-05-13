@@ -114,7 +114,7 @@ Scope: `cases.read`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 案件 ID |
+| id | string | 案件 ID（hashid） |
 | case_name | string | 案件名称 |
 | case_code | string | 案件编号 |
 | c_num | string | 内部案号 |
@@ -126,19 +126,19 @@ Scope: `cases.read`
 | degree | int | 等级 (0=次要, 1=一般, 2=重要) |
 | created_at | string | 创建时间 |
 
-### GET /cases/{id} - 案件详情
+### GET /cases/{code} - 案件详情
 
 Scope: `cases.read`
 
-返回完整案件信息，包含当事人、阶段、受理单位等。
+返回完整案件信息，包含当事人、阶段、受理单位等。路径参数使用 `case_code`（非 id）。
 
-**参数**: 路径参数 `id` (必填)
+**参数**: 路径参数 `code` = `case_code`（必填）
 
 **响应 data 字段**:
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 案件 ID |
+| id | string | 案件 ID（hashid） |
 | case_name | string | 案件名称 |
 | case_code | string | 案件编号 |
 | c_num | string | 内部案号 |
@@ -168,16 +168,16 @@ Scope: `cases.read`
 | privyc[].card_num | string | 证件号码 |
 | privyc[].phone | string | 联系电话 |
 | privyc[].address | string | 地址 |
-| cl_id | int | 关联客户 ID |
-| link_pr | int | 关联项目 ID |
+| cl_id | string | 关联客户 ID（hashid，可为 null） |
+| link_pr | string | 关联项目 ID（hashid，可为 null） |
 | created_at | string | 创建时间 |
 | updated_at | string | 更新时间 |
 
-### PATCH /cases/{id} - 更新案件
+### PATCH /cases/{code} - 更新案件
 
 Scope: `cases.write` | **高危操作，需二次确认**
 
-V2 将 V1 的 PUT 改为 PATCH，支持更多可更新字段。
+V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`。
 
 **参数**:
 
@@ -201,7 +201,7 @@ V2 将 V1 的 PUT 改为 PATCH，支持更多可更新字段。
 
 **响应**: 返回更新后的案件完整数据。
 
-### GET /cases/{id}/stages - 案件阶段列表
+### GET /cases/{code}/stages - 案件阶段列表
 
 Scope: `cases.read`
 
@@ -209,20 +209,20 @@ Scope: `cases.read`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| id | int | 是 | 路径参数，案件 ID |
+| code | string | 是 | 路径参数，case_code |
 
 **响应 data 字段** (列表项):
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 阶段 ID |
-| cid | int | 案件 ID |
+| id | string | 阶段 ID（hashid） |
+| cid | string | 案件 ID（hashid） |
 | name | string | 阶段名称 |
 | type | int | 类型 |
 | active | int | 是否当前阶段 (1=是) |
 | index | int | 排序序号 |
 
-### GET /cases/{id}/records - 案件办案记录列表
+### GET /cases/{code}/records - 案件办案记录列表
 
 Scope: `cases.read`
 
@@ -230,7 +230,7 @@ Scope: `cases.read`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| id | int | 是 | 路径参数，案件 ID |
+| code | string | 是 | 路径参数，case_code |
 | hstatus | int | 否 | 办理状态: 0=待办, 1=已办 |
 | page | int | 否 | 页码 |
 | limit | int | 否 | 每页条数 |
@@ -239,23 +239,23 @@ Scope: `cases.read`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 记录 ID |
+| id | string | 记录 ID（hashid） |
 | rcode | string | 记录编码 |
 | title | string | 标题 |
 | content | string | 内容详情 |
 | htime | int/string | 办理时间（时间戳或格式化时间） |
 | endtime | int/string | 结束时间 |
 | hstatus | int | 状态: 0=待办, 1=已办 |
-| huser | int | 主办人 UID |
-| assit | string | 协办人 UID 列表 |
+| huser | string | 主办人 UID（hashid） |
+| assit | string | 协办人 UID 列表（hashid） |
 | type | int | 关联类型: 1=案件 |
-| linkid | int | 关联案件 ID |
+| linkid | string | 关联案件 ID（hashid） |
 | time_cost | int | 时间花费（分钟） |
 | fee_cost | int | 费用花费 |
-| stage | int | 所属阶段 ID |
+| stage | string | 所属阶段 ID（hashid） |
 | rtype | string | 工作摘要/分类 |
 
-### POST /cases/{id}/records - 添加办案记录
+### POST /cases/{code}/records - 添加办案记录
 
 Scope: `cases.write`
 
@@ -265,7 +265,7 @@ Scope: `cases.write`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| id | int | 是 | 路径参数，案件 ID |
+| code | string | 是 | 路径参数，case_code |
 | title | string | 是 | 记录标题 |
 | content | string | 否 | 记录内容 |
 | htime | string | 是 | 办理时间 (YYYY-MM-DD HH:mm) |
@@ -274,7 +274,7 @@ Scope: `cases.write`
 | rtype | string | 否 | 工作摘要 |
 | time_cost | int | 否 | 时间花费（分钟） |
 | fee_cost | int | 否 | 费用花费 |
-| stage | int | 否 | 阶段 ID |
+| stage | string | 否 | 阶段 ID（hashid） |
 
 > 该操作会同时创建一条日程（type=1, linkid=案件ID），实现记录与日程同步。
 
@@ -373,7 +373,7 @@ Scope: `calendar.write`
 | htime | string | 是 | 开始时间 (YYYY-MM-DD HH:mm) |
 | endtime | string | 是 | 结束时间 (YYYY-MM-DD HH:mm)，必须 >= htime |
 | content | string | 否 | 日程内容 |
-| linkid | int | 否 | 关联案件/项目/客户 ID |
+| linkid | string | 否 | 关联案件/项目/客户的 ID（hashid） |
 | type | int | 是 | 关联类型: 0=不关联, 1=案件, 2=项目, 3=客户（只允许这四个值） |
 | rtype | string | 否 | 工作摘要/分类 |
 | time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
@@ -390,14 +390,14 @@ Scope: `calendar.write`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| id | int | 是 | 路径参数，日程 ID |
+| id | string | 是 | 路径参数，日程 ID（hashid） |
 | title | string | 否 | 日程标题（不可传空值） |
 | htime | string | 否 | 开始时间（格式必须合法） |
 | endtime | string | 否 | 结束时间（必须 >= htime） |
 | content | string | 否 | 日程内容（允许清空） |
 | hstatus | int | 否 | 状态: 0=待办, 1=已办（只允许这两个值） |
 | time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
-| linkid | int | 否 | 关联资源 ID |
+| linkid | string | 否 | 关联资源 ID（hashid） |
 | type | int | 否 | 关联类型 |
 
 > 至少提供一个更新字段。
@@ -427,7 +427,7 @@ Scope: `clients.read`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 客户 ID |
+| id | string | 客户 ID（hashid） |
 | name | string | 客户名称 |
 | code | string | 客户编码 |
 | c_num | string | 客户编号 |
@@ -440,17 +440,19 @@ Scope: `clients.read`
 | org_id | int | 组织 ID |
 | created_at | string | 创建时间 |
 
-### GET /clients/{id} - 客户详情
+### GET /clients/{code} - 客户详情
 
 Scope: `clients.read`
 
-**参数**: 路径参数 `id` (必填)
+路径参数使用客户 `code`（非 id）。
+
+**参数**: 路径参数 `code` = 客户编码（必填）
 
 **响应 data 字段**:
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 客户 ID |
+| id | string | 客户 ID（hashid） |
 | name | string | 客户名称 |
 | code | string | 客户编码 |
 | c_num | string | 客户编号 |
@@ -468,7 +470,7 @@ Scope: `clients.read`
 | org_id | int | 组织 ID |
 | created_at | string | 创建时间 |
 
-### GET /clients/{id}/contacts - 客户联系人
+### GET /clients/{code}/contacts - 客户联系人
 
 Scope: `clients.read`
 
@@ -478,7 +480,7 @@ Scope: `clients.read`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| id | int | 是 | 路径参数，客户 ID |
+| code | string | 是 | 路径参数，客户编码 |
 
 **响应 data 字段** (列表项):
 
@@ -491,7 +493,7 @@ Scope: `clients.read`
 | email | string | 邮箱 |
 | address | string | 地址 |
 | position | string | 职位 |
-| cl_id | int | 所属客户 ID |
+| cl_id | string | 所属客户 ID（hashid） |
 | is_default | int | 是否默认联系人 |
 
 ### PATCH /clients/{code} - 更新客户
@@ -702,7 +704,7 @@ Scope: `finance.read`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 记录 ID |
+| id | string | 记录 ID（hashid） |
 | org_id | int | 组织 ID |
 | status | int | 状态: 1=待认领, 2=审核中, 3=已通过 |
 | status_text | string | 状态文本 |
@@ -712,7 +714,7 @@ Scope: `finance.read`
 | currency | string | 币种 |
 | charge_type | string | 费用类型 |
 | check_no | string | 支票号 |
-| confirm_uid | int | 确认人 UID |
+| confirm_uid | string | 确认人 UID（hashid） |
 | confirm_uid_text | string | 确认人姓名 |
 | sk_date | string | 收款日期 |
 | files | array | 关联文件 |
@@ -721,7 +723,7 @@ Scope: `finance.read`
 
 Scope: `finance.read`
 
-**参数**: 路径参数 `id` (必填)
+**参数**: 路径参数 `id`（hashid，必填）
 
 **响应**: 返回单条财务记录的完整字段。
 
@@ -742,9 +744,9 @@ Scope: `finance.read`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | int | 应收款 ID |
+| id | string | 应收款 ID（hashid） |
 | linktype | int | 关联类型: 1=案件, 2=项目, 3=客户 |
-| linkid | int | 关联资源 ID |
+| linkid | string | 关联资源 ID（hashid） |
 | r_amount | decimal | 应收金额 |
 | type | int | 类型: 1=合同律师费, 2=计量收费, 3=风险收费, 4=代付费用, 5=协商增收 |
 | type_text | string | 类型文本 |

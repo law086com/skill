@@ -76,13 +76,13 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | type | 含义 | linkid 来源 |
 |------|------|-------------|
 | 0 | 不关联 | 无（仅在用户完全没提到任何实体时使用） |
-| 1 | 案件 | `GET /cases` 返回的 `id` |
-| 2 | 项目 | `GET /projects` 返回的 `id` |
-| 3 | 客户 | `GET /clients` 返回的 `id` |
+| 1 | 案件 | `GET /cases` 返回的 `id`（hashid 字符串） |
+| 2 | 项目 | `GET /projects` 返回的 `id`（hashid 字符串） |
+| 3 | 客户 | `GET /clients` 返回的 `id`（hashid 字符串） |
 
-识别优先级：案件(1) > 项目(2) > 客户(3)。`linkid` 用实体 `id` 字段（非 code）。
+识别优先级：案件(1) > 项目(2) > 客户(3)。`linkid` 直接使用实体返回的 `id` 字段值（hashid 字符串，如 `"J3GGbB3j"`），不要转成 int。
 
-**示例**：用户说"约小康米下周开会"→ 搜索 `GET /clients?keyword=小康米` → 获取 `id` → `POST /calendar '{"title":"...","htime":"...","endtime":"...","type":3,"linkid":123}'`
+**示例**：用户说"约小康米下周开会"→ 搜索 `GET /clients?keyword=小康米` → 获取 `id`（如 `"z83jgBA5"`）→ `POST /calendar '{"title":"...","htime":"...","endtime":"...","type":3,"linkid":"z83jgBA5"}'`
 
 ### time_cost vs htime/endtime
 
