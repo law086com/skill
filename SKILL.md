@@ -47,7 +47,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | PATCH | /cases/{code} | 更新案件（stage_text/degree/anhao 等）⚠️ process_code 需确认 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
 | GET | /cases/{code}/records | 案件办案记录 |
-| POST | /cases/{code}/records | 添加办案记录（自动同步为日程） |
+| POST | /cases/{code}/records | ~~添加办案记录~~（禁用，用 POST /calendar 代替） |
 | GET | /calendar | 日程列表（用 start_date/end_date，禁用 today/this_week） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type） |
 | PUT | /calendar/{id} | 更新日程 |
@@ -67,16 +67,13 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 ## 关键概念
 
-### 办案记录 vs 日程（二选一，禁止重复创建）
+### 日程与办案记录的关系
 
-办案记录和日程在系统中共享同一张表。**创建办案记录时会自动同步为日程**，因此两者必须二选一，禁止同时调用。
+办案记录和日程共享同一张表。`GET /cases/{code}/records` 用于**查询**某案件的办理记录，`POST /calendar` 是**创建日程**的唯一入口。
 
-**选择规则**：
-- 用户提到**案件**（如"江西建工案明天开庭"）→ 只用 `POST /cases/{code}/records`（自动关联案件并同步日程）
-- 用户提到**项目/客户**（如"约小康米下周开会"）→ 只用 `POST /calendar`（手动设置 linkid+type）
-- 用户**没提到任何实体**（如"明天下午2点提醒我打电话"）→ 只用 `POST /calendar '{"type":0}'`
-
-**绝对禁止**：对同一个事项同时调用 `POST /cases/{code}/records` 和 `POST /calendar`，否则会产生重复记录。
+- 需要创建日程/待办/提醒 → 一律用 `POST /calendar`，通过 `type`+`linkid` 关联案件/项目/客户
+- 需要查看某案件的办理历史 → 用 `GET /cases/{code}/records`
+- **禁止用** `POST /cases/{code}/records` 创建记录（会产生重复数据）
 
 ### 日程关联（重要）
 
@@ -93,7 +90,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 识别优先级：案件(1) > 项目(2) > 客户(3)。`linkid` 直接使用实体返回的 `id` 字段值（hashid 字符串，如 `"J3GGbB3j"`），不要转成 int。
 
-**示例**：用户说"约小康米下周开会"→ 搜索 `GET /clients?keyword=小康米` → 获取 `id`（如 `"z83jgBA5"`）→ `POST /calendar '{"title":"...","htime":"...","endtime":"...","type":3,"linkid":"z83jgBA5"}'`
+**示例**：用户说"江西建工案明天开庭"→ 搜索案件 → `POST /calendar '{"title":"开庭","htime":"...","endtime":"...","type":1,"linkid":"B31ewk3n"}'`
 
 ### time_cost vs htime/endtime
 
