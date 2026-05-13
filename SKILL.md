@@ -47,7 +47,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | PATCH | /cases/{code} | 更新案件（stage_text/degree/anhao 等）⚠️ process_code 需确认 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
 | GET | /cases/{code}/records | 案件办案记录 |
-| POST | /cases/{code}/records | ~~添加办案记录~~（禁用，用 POST /calendar 代替） |
+| POST | /cases/{code}/records | 添加办案记录（自动关联案件，会出现在日历） |
 | GET | /calendar | 日程列表（用 start_date/end_date，禁用 today/this_week） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type） |
 | PUT | /calendar/{id} | 更新日程 |
@@ -69,11 +69,13 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 ### 日程与办案记录的关系
 
-办案记录和日程共享同一张表。`GET /cases/{code}/records` 用于**查询**某案件的办理记录，`POST /calendar` 是**创建日程**的唯一入口。
+日程和办案记录是同一张表，是同一条数据的不同视图。
 
-- 需要创建日程/待办/提醒 → 一律用 `POST /calendar`，通过 `type`+`linkid` 关联案件/项目/客户
-- 需要查看某案件的办理历史 → 用 `GET /cases/{code}/records`
-- **禁止用** `POST /cases/{code}/records` 创建记录（会产生重复数据）
+- `POST /calendar` → 创建日程/待办/提醒（通用入口，手动设置 `type`+`linkid`）
+- `POST /cases/{code}/records` → 给案件添加办案记录（自动设置 `type=1`+`linkid`，有 htime 就会出现在日历）
+- `GET /cases/{code}/records` → 查看某案件的办理历史
+
+**规则：同一事项只调一个接口，不要同时调用 `POST /calendar` 和 `POST /cases/{code}/records`。**
 
 ### 日程关联（重要）
 
