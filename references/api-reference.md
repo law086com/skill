@@ -255,31 +255,6 @@ Scope: `cases.read`
 | stage | string | 所属阶段 ID（hashid） |
 | rtype | string | 工作摘要/分类 |
 
-### POST /cases/{code}/records - 添加办案记录
-
-Scope: `cases.write`
-
-添加办案记录的同时会同步创建一条日程。
-
-**参数**:
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| code | string | 是 | 路径参数，case_code |
-| title | string | 是 | 记录标题 |
-| content | string | 否 | 记录内容 |
-| htime | string | 是 | 办理时间 (YYYY-MM-DD HH:mm) |
-| endtime | string | 否 | 结束时间 (YYYY-MM-DD HH:mm) |
-| hstatus | int | 否 | 办理状态: 0=待办(默认), 1=已办 |
-| rtype | string | 否 | 工作摘要 |
-| time_cost | int | 否 | 时间花费（分钟） |
-| fee_cost | int | 否 | 费用花费 |
-| stage | string | 否 | 阶段 ID（hashid） |
-
-> 该操作会同时创建一条日程（type=1, linkid=案件ID），实现记录与日程同步。
-
-**响应**: 返回创建的记录数据。
-
 ---
 
 ## Calendar 日程
