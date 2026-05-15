@@ -498,6 +498,86 @@ Scope: `clients.write`
 
 **响应**: 返回更新后的客户详情（同 GET /clients/{code}）。
 
+### GET /clients/create-form - 获取客户创建表单 schema
+
+Scope: `clients.write`
+
+返回客户创建所需的完整表单结构，包含枚举选项、行业树、自定义字段定义等。AI 创建客户前必须先调用此端点获取 schema。
+
+**参数**: 无
+
+**响应 data 字段**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| form_schema | object | 表单 schema 定义 |
+| form_schema.sections | array | 表单分区列表（3个分区） |
+
+**sections 分区结构**:
+
+1. **basic** - 客户基本信息
+   - mark (enum, 必填): 客户标识，1=单位, 2=个人
+   - name (string, 必填): 客户名称
+   - c_num (string): 客户编号，留空自动生成
+   - type (enum, 必填): 合作状态，1=签约, 2=意向, 3=潜在, 4=终止
+   - degree (enum): 客户重要性，1=次要, 2=一般, 3=重要, 4=核心
+   - industry (cascade): 所属行业（树形结构）
+   - from_text (string): 客户来源
+   - c_start_time (date): 合同起始时间
+   - c_end_time (date): 合同结束时间
+   - contact (string): 联系电话
+   - description (string): 备注
+   - 单位专属字段 (depends_on mark=1): address, legal_per, card_num
+   - 个人专属字段 (depends_on mark=2): nation, sex, card_num_personal, address_personal
+
+2. **custom** - 自定义信息
+   - custom_tag (multi_select): 分类标签
+   - dynamic_fields: 组织自定义字段定义（动态生成）
+
+3. **contacts** - 联系人信息（可多个）
+   - name, sex, mobile, email, job, address, remark
+
+### POST /clients - 创建客户
+
+Scope: `clients.write`
+
+创建新客户。创建前应先调用 `GET /clients/create-form` 获取表单 schema 并展示确认信息。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 客户名称 |
+| mark | int | 是 | 客户标识: 1=单位, 2=个人 |
+| type | int | 否 | 合作状态: 1=签约, 2=意向, 3=潜在, 4=终止 |
+| degree | int | 否 | 客户重要性: 1=次要, 2=一般, 3=重要, 4=核心 |
+| c_num | string | 否 | 客户编号，留空系统自动生成 |
+| industry | string | 否 | 行业 ID（逗号分隔或级联数组） |
+| from_text | string | 否 | 客户来源 |
+| c_start_time | string | 否 | 合同起始时间 (YYYY-MM-DD) |
+| c_end_time | string | 否 | 合同结束时间 (YYYY-MM-DD) |
+| contact | string | 否 | 联系电话 |
+| description | string | 否 | 备注 |
+| address | string | 否 | 地址（单位地址或住所地） |
+| legal_per | string | 否 | 法定代表人（单位 mark=1） |
+| card_num | string | 否 | 证件号码/统一社会信用代码 |
+| sex | int | 否 | 性别: 0=男, 1=女（个人 mark=2） |
+| nation | string | 否 | 民族（个人 mark=2） |
+| card_num_personal | string | 否 | 证件号码（个人 mark=2，自动映射到 card_num） |
+| address_personal | string | 否 | 住所地（个人 mark=2，自动映射到 address） |
+| custom_fields | string | 否 | 自定义字段 JSON `{"{id}":"value"}` |
+| custom_tag | string/array | 否 | 分类标签 |
+| clcontact_data | string | 否 | 联系人 JSON 数组 `[{"name":"xxx","mobile":"xxx"}]` |
+
+**响应 data 字段**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 新客户 ID（hashid） |
+| code | string | 客户编码（用于后续查询） |
+| c_num | string | 客户编号 |
+| name | string | 客户名称 |
+
 ---
 
 ## Records 记录
@@ -655,6 +735,96 @@ Scope: `projects.write`
 > 至少提供一个字段。
 
 **响应**: 返回更新后的项目完整详情。
+
+### GET /projects/create-form - 获取项目创建表单 schema
+
+Scope: `projects.write`
+
+返回项目创建所需的完整表单结构，包含项目类型树、客户列表、自定义字段、收费参数等。AI 创建项目前必须先调用此端点获取 schema。
+
+**参数**: 无
+
+**响应 data 字段**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| form_schema | object | 表单 schema 定义 |
+| form_schema.sections | array | 表单分区列表（6个分区） |
+
+**sections 分区结构**:
+
+1. **basic** - 项目基本信息
+   - pr_name (string, 必填): 项目名称
+   - pr_type (cascade, 必填): 项目类型（树形结构，取最后一级 ID）
+   - pr_status (enum, 必填): 项目状态，1=进行中, 2=已结束
+   - funding (number, 必填): 项目经费（元）
+   - start_time (date): 开始时间，默认今天
+   - end_time (date): 结束时间，默认今天+1年
+   - stage_text (string): 当前阶段
+   - p_num (string): 项目编号，留空自动生成
+   - degree (enum): 紧急程度，0=次要, 1=一般, 2=重要
+   - mark (string): 备注
+
+2. **custom** - 自定义信息
+   - custom_tag (multi_select): 分类标签
+   - dynamic_fields: 组织自定义字段定义（动态生成）
+
+3. **client** - 关联客户
+   - cl_id (select): 关联已有客户（下拉选项为当前律师的客户列表）
+
+4. **contacts** - 项目联系人（可多个）
+   - name, mobile, email, address, remark
+
+5. **fee** - 收费信息
+   - fee_type_list (multi_enum): 收费方式（1=定额, 2=风险, 3=计时, 4=计件, 5=免费）
+   - c_amount (number): 标的额
+   - fee_subject (string): 标的物
+   - w_fee (number): 代理费
+   - charge_desc (string): 收费简介
+   - fee_mark (string): 收费备注
+   - charge_data (grouped): 各收费方式的具体参数（JSON 数组）
+
+6. **receivables** - 应收款信息（可多个）
+   - title (string): 款项名称
+   - r_amount (number): 应收金额
+   - r_date (date): 约定收款日期
+   - remark (string): 备注
+
+### POST /projects - 创建项目
+
+Scope: `projects.write`
+
+创建新项目。创建前应先调用 `GET /projects/create-form` 获取表单 schema 并展示确认信息。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| pr_name | string | 是 | 项目名称 |
+| pr_type | int/array | 是 | 项目类型 ID（级联数组自动取最后一级） |
+| pr_status | int | 是 | 项目状态: 1=进行中, 2=已结束 |
+| funding | number | 是 | 项目经费 |
+| start_time | string | 否 | 开始时间 (YYYY-MM-DD)，默认今天 |
+| end_time | string | 否 | 结束时间 (YYYY-MM-DD)，默认今天+1年 |
+| stage_text | string | 否 | 当前阶段 |
+| p_num | string | 否 | 项目编号，留空系统自动生成 |
+| degree | int | 否 | 紧急程度: 0=次要, 1=一般, 2=重要 |
+| mark | string | 否 | 备注 |
+| cl_id | int/string | 否 | 关联客户 ID |
+| custom_fields | string | 否 | 自定义字段 JSON |
+| custom_tag | string/array | 否 | 分类标签 |
+| clcontact_data | string | 否 | 联系人 JSON 数组 |
+| charge_data | string | 否 | 收费配置 JSON 数组 |
+| receive_data | string | 否 | 应收款 JSON 数组 |
+
+**响应 data 字段**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 新项目 ID（hashid） |
+| pr_code | string | 项目编码（用于后续查询） |
+| p_num | string | 项目编号 |
+| pr_name | string | 项目名称 |
 
 ---
 
@@ -854,8 +1024,12 @@ Scope: 任意已授权 scope
 - GET /clients
 - GET /clients/{id}
 - GET /clients/{id}/contacts
+- GET /clients/create-form
+- POST /clients
 - GET /projects
 - GET /projects/{code}
+- GET /projects/create-form
+- POST /projects
 - PATCH /projects/{code}
 - GET /finance/receivables
 - GET /finance/receivables/{id}
@@ -874,8 +1048,9 @@ Scope: 任意已授权 scope
 | calendar.read | 查看日程和团队成员 | GET /team/members, GET /calendar |
 | calendar.write | 创建/更新/日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
 | clients.read | 查看客户信息和联系人 | GET /clients, GET /clients/{id}, GET /clients/{id}/contacts |
+| clients.write | 更新客户信息、创建客户 | PATCH /clients/{id}, GET /clients/create-form, POST /clients |
 | projects.read | 查看项目列表和详情 | GET /projects, GET /projects/{code} |
-| projects.write | 更新项目信息 | PATCH /projects/{code} |
+| projects.write | 更新项目信息、创建项目 | PATCH /projects/{code}, GET /projects/create-form, POST /projects |
 | finance.read | 查看财务记录和摘要 | GET /finance, GET /finance/{id}, GET /finance/receivables, GET /finance/receivables/{id}, GET /finance/summary |
 | dashboard.read | 每日概览 | GET /dashboard |
 | documents.generate | 生成文书模板 | POST /documents/generate (V1 保留) |

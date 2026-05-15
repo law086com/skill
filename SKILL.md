@@ -1,6 +1,6 @@
 ---
 name: law086
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程、查看和更新客户信息、查看项目信息、查看财务记录和应收款、查看和更新工作记录、生成文书模板。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"查看客户"、"更新客户"、"查看项目"、"团队日程"、"应收款"、"更新记录"、"标记已办"时触发此技能。
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、查看和更新工作记录、生成文书模板。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"更新记录"、"标记已办"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -53,10 +53,14 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /team/members | 团队成员列表（个人空间不可用） |
 | GET | /clients | 客户列表（keyword 搜索） |
 | GET | /clients/{code} | 客户详情（含关联案件） |
+| GET | /clients/create-form | 获取客户创建表单 schema |
+| POST | /clients | 创建客户 |
 | PATCH | /clients/{code} | 更新客户 |
 | GET | /clients/{code}/contacts | 客户联系人 |
 | GET | /projects | 项目列表 |
 | GET | /projects/{code} | 项目详情（含团队、关联客户） |
+| GET | /projects/create-form | 获取项目创建表单 schema |
+| POST | /projects | 创建项目 |
 | PATCH | /projects/{code} | 更新项目 |
 | GET | /finance | 财务记录（高阶版以上） |
 | GET | /finance/receivables | 应收款列表 |
@@ -100,6 +104,18 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 `is_team=1` 查看团队日程（需团队版以上），`uids` 用 `/team/members` 返回的 hashid。展示用 `htime_text`/`huser_text`/`type_text` 等后端预处理好字段。
 
+### 创建流程（客户/项目）
+
+创建客户或项目前，**必须先调 `create-form` 端点**获取完整表单 schema（含枚举选项、级联树、自定义字段等）。流程：
+
+1. AI 调用 `GET /clients/create-form` 或 `GET /projects/create-form` 获取表单 schema
+2. AI 根据 schema 将用户描述映射为正确的枚举值和分类 ID
+3. AI 展示确认信息（人类可读格式），等待用户确认
+4. 用户确认后，AI 调用 `POST /clients` 或 `POST /projects` 创建
+5. 创建成功后返回实体编号（客户返回 `code`/`c_num`，项目返回 `pr_code`/`p_num`）
+
+**关键**：schema 中的枚举选项和级联树由后端动态返回，AI 必须依据 schema 中的值进行映射，不能凭猜测。
+
 ## 高危操作
 
 - **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）→ 必须先确认
@@ -120,5 +136,8 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "日程花费了2.5小时" | 记录工时 | `PUT /calendar/{id} '{"time_cost":150}'` |
 | "把记录标记为已办" | 更新记录 | `PATCH /records/{id} '{"hstatus":1}'` |
 | "更新客户类型为签约" | 更新客户 | `PATCH /clients/{code} '{"type":1}'` |
+| "帮我创建客户张三，个人，电话138xxxx" | 创建客户 | `GET /clients/create-form` → 确认 → `POST /clients '{name,mark,contact,...}'` |
+| "创建一个单位客户华为" | 创建客户 | `GET /clients/create-form` → 确认 → `POST /clients '{name:"华为",mark:1,...}'` |
+| "新建一个项目xxx，合同纠纷，预算5万" | 创建项目 | `GET /projects/create-form` → 确认 → `POST /projects '{pr_name,pr_type,pr_status,funding,...}'` |
 | "团队日程" | 团队视图 | `GET "/calendar?is_team=1&start_date=...&end_date=..."` |
 | "案件云" | 每日概览 | `GET /dashboard` |
