@@ -48,7 +48,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code}/stages | 案件阶段列表 |
 | GET | /cases/{code}/records | 案件办案记录（仅查询） |
 | GET | /calendar | 日程列表（用 start_date/end_date，禁用 today/this_week） |
-| POST | /calendar | 创建日程（必填: title/htime/endtime/type） |
+| POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: assit 协办人UID列表） |
 | PUT | /calendar/{id} | 更新日程 |
 | GET | /team/members | 团队成员列表（个人空间不可用） |
 | GET | /clients | 客户列表（keyword 搜索） |
@@ -132,6 +132,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "今天有什么安排" | 今日日程 | `GET "/calendar?start_date=今天&end_date=今天"` |
 | "创建明天下午2点的日程" | 创建日程 | `POST /calendar '{title,htime,endtime,type:0}'` |
 | "明天约小康米开会" | 关联客户日程 | 先 `GET "/clients?keyword=小康米"` → `POST /calendar '{...,linkid:id,type:3}'` |
+| "明天和同事一起开庭" | 带协办人日程 | 先 `GET /team/members` 获取 UID → `POST /calendar '{...,assit:"uid1,uid2"}'` |
 | "帮小米案加开庭日程" | 关联案件日程 | 先 `GET "/cases?keyword=小米"` → `POST /calendar '{...,linkid:id,type:1}'` |
 | "日程花费了2.5小时" | 记录工时 | `PUT /calendar/{id} '{"time_cost":150}'` |
 | "把记录标记为已办" | 更新记录 | `PATCH /records/{id} '{"hstatus":1}'` |
