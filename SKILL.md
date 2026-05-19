@@ -46,7 +46,6 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code} | 案件详情（含当事人、阶段、财务） |
 | PATCH | /cases/{code} | 更新案件（stage_text/degree/anhao 等）⚠️ process_code 需确认 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
-| GET | /cases/{code}/records | 案件办案记录（仅查询） |
 | GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: assit 协办人UID列表） |
 | PUT | /calendar/{id} | 更新日程/记录（状态、人员、时间、阶段等，统一更新入口） |

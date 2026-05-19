@@ -222,39 +222,6 @@ Scope: `cases.read`
 | active | int | 是否当前阶段 (1=是) |
 | index | int | 排序序号 |
 
-### GET /cases/{code}/records - 案件办案记录列表
-
-Scope: `cases.read`
-
-**参数**:
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| code | string | 是 | 路径参数，case_code |
-| hstatus | int | 否 | 办理状态: 0=待办, 1=已办 |
-| page | int | 否 | 页码 |
-| limit | int | 否 | 每页条数 |
-
-**响应 data 字段** (列表项):
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | string | 记录 ID（hashid） |
-| rcode | string | 记录编码 |
-| title | string | 标题 |
-| content | string | 内容详情 |
-| htime | int/string | 办理时间（时间戳或格式化时间） |
-| endtime | int/string | 结束时间 |
-| hstatus | int | 状态: 0=待办, 1=已办 |
-| huser | string | 主办人 UID（hashid） |
-| assit | string | 协办人 UID 列表（hashid） |
-| type | int | 关联类型: 1=案件 |
-| linkid | string | 关联案件 ID（hashid） |
-| time_cost | int | 时间花费（分钟） |
-| fee_cost | int | 费用花费 |
-| stage | string | 所属阶段 ID（hashid） |
-| rtype | string | 工作摘要/分类 |
-
 ---
 
 ## Calendar 日程
@@ -1024,8 +991,6 @@ Scope: 任意已授权 scope
 - GET /team/members (团队成员列表)
 - PATCH /cases/{id} (替代 PUT)
 - GET /cases/{id}/stages
-- GET /cases/{id}/records
-- POST /cases/{id}/records
 - PUT /calendar/{id}
 - DELETE /calendar/{id}
 - GET /clients
@@ -1050,8 +1015,8 @@ Scope: 任意已授权 scope
 
 | Scope | 说明 | 涉及端点 |
 |-------|------|----------|
-| cases.read | 查看案件列表、详情、搜索 | GET /cases, GET /cases/{id}, GET /cases/{id}/stages, GET /cases/{id}/records, GET /search |
-| cases.write | 更新案件、添加办案记录 | PATCH /cases/{id}, POST /cases/{id}/records |
+| cases.read | 查看案件列表、详情、搜索 | GET /cases, GET /cases/{id}, GET /cases/{id}/stages, GET /search |
+| cases.write | 更新案件 | PATCH /cases/{id} |
 | calendar.read | 查看日程和团队成员 | GET /team/members, GET /calendar |
 | calendar.write | 创建/更新/日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
 | clients.read | 查看客户信息和联系人 | GET /clients, GET /clients/{id}, GET /clients/{id}/contacts |
