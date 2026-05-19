@@ -376,6 +376,8 @@ Scope: `calendar.write`
 | time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
 | linkid | string | 否 | 关联资源 ID（hashid） |
 | type | int | 否 | 关联类型 |
+| huser | string | 否 | 主办人 UID（hashid，单人，来自 GET /team/members），不传则不变。⚠️ 只能指定一个主办人 |
+| assit | string | 否 | 协办人UID列表，逗号分隔的 hashid（来自 GET /team/members），传空字符串清空，不传则不变 |
 
 > 至少提供一个更新字段。
 
