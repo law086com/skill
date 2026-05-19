@@ -297,10 +297,26 @@ Scope: `calendar.read`
 | end_date | string | 否 | 结束日期 (YYYY-MM-DD) |
 | is_team | int | 否 | 团队视图: 0=个人(默认), 1=团队 |
 | uids | string | 否 | 指定团队成员，逗号分隔的 hashid（来自 `GET /team/members` 返回的 uid 字段，如 `aB3xKp,mN9wRq`） |
+| type | int | 否 | 关联类型筛选: 0=不关联, 1=案件, 2=项目, 3=客户 |
+| linkid | string | 否 | 关联资源 ID（hashid），配合 type 使用，筛选指定案件/项目/客户的记录 |
 | hstatus | int | 否 | 状态: 0=待办, 1=已办 |
+| keyword | string | 否 | 按标题搜索 |
 | limit | int | 否 | 每页条数，默认 20 |
 
 > **注意**: 不要使用 `today=1` 或 `this_week=1` 快捷参数，服务端过滤不精确。应始终用 `start_date`/`end_date` 传入具体日期范围。
+
+**按实体查记录**: 通过 `type`+`linkid` 组合筛选，可查看案件/项目/客户的关联记录：
+
+```bash
+# 查案件的办案记录
+GET /calendar?type=1&linkid={case_hashid}
+
+# 查项目的关联记录
+GET /calendar?type=2&linkid={project_hashid}
+
+# 查客户的关联记录
+GET /calendar?type=3&linkid={client_hashid}
+```
 
 **响应 data 字段** (列表项):
 
