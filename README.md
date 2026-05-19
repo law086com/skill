@@ -1,10 +1,10 @@
-# 案件云 Claude Code Skill
+# 案件云 AI Agent Skill
 
 让 AI 通过自然语言操作案件云系统 —— 查询案件、管理日程、查看客户、更新记录等。
 
 ## 这是什么
 
-这是一个 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 的自定义 Skill，通过案件云 Open API (V2.0) 实现自然语言交互。
+这是一个 [AI Agent](https://docs.anthropic.com/en/docs/claude-code) 的自定义 Skill，通过案件云 Open API 实现自然语言交互。
 
 用户只需说"查询我的案件"、"今天有什么安排"、"更新客户信息"，AI 即可自动调用对应 API 完成操作。
 
@@ -12,13 +12,12 @@
 
 ### 1. 安装
 
-将本目录复制到你的 Claude Code skills 目录下：
+将本目录复制到你的 AI Agent（openclaw、hermes、workbody、claudecode等） skills 目录下：
 
 ```bash
-cp -r skil/ ~/.claude/skills/law086/
+cp -r skill/ ~/.claude/skills/law086/
 ```
 
-或者直接在项目中使用（已集成在 `.claude/skills/law086/` 下）。
 
 ### 2. 配置
 
@@ -47,7 +46,7 @@ PAT_TOKEN=law086_pat_你的令牌
 
 ### 4. 使用
 
-在 Claude Code 中直接用自然语言：
+在 AI Agent 中直接用自然语言：
 
 | 你说 | AI 做什么 |
 |------|-----------|
@@ -76,7 +75,7 @@ PAT_TOKEN=law086_pat_你的令牌
 
 ```
 law086/
-├── SKILL.md                    # Skill 定义文件（Claude Code 读取）
+├── SKILL.md                    # Skill 定义文件（AI Agent 读取）
 ├── .env.example                # 环境配置模板
 ├── scripts/
 │   └── api.py                  # API 调用脚本（自动处理认证和编码）
