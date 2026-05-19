@@ -359,29 +359,32 @@ Scope: `calendar.write`
 
 **响应**: 返回创建的日程数据（含自动生成的 rcode）。
 
-### PUT /calendar/{id} - 更新日程
+### PUT /calendar/{id} - 更新日程/记录
 
 Scope: `calendar.write`
+
+**这是日程和办案记录的统一更新入口**，支持更新所有字段。`PATCH /records/{id}` 已废弃，所有更新操作统一使用此端点。
 
 **参数**:
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| id | string | 是 | 路径参数，日程 ID（hashid） |
-| title | string | 否 | 日程标题（不可传空值） |
+| id | string | 是 | 路径参数，日程/记录 ID（hashid） |
+| title | string | 否 | 标题（不可传空值） |
 | htime | string | 否 | 开始时间（格式必须合法） |
 | endtime | string | 否 | 结束时间（必须 >= htime） |
-| content | string | 否 | 日程内容（允许清空） |
+| content | string | 否 | 内容（允许清空） |
 | hstatus | int | 否 | 状态: 0=待办, 1=已办（只允许这两个值） |
 | time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
 | linkid | string | 否 | 关联资源 ID（hashid） |
 | type | int | 否 | 关联类型 |
 | huser | string | 否 | 主办人 UID（hashid，单人，来自 GET /team/members），不传则不变。⚠️ 只能指定一个主办人 |
 | assit | string | 否 | 协办人UID列表，逗号分隔的 hashid（来自 GET /team/members），传空字符串清空，不传则不变 |
+| stage | string | 否 | 案件阶段 ID（hashid，来自 GET /cases/{code}/stages），传空字符串清空 |
 
 > 至少提供一个更新字段。
 
-**响应**: 返回更新后的日程数据。
+**响应**: 返回更新后的完整数据（含 `stage_name`、`huser_text`、`assit_text` 等）。
 
 ---
 
@@ -586,7 +589,7 @@ Scope: `clients.write`
 
 ## Records 记录
 
-独立于案件/项目的记录操作，通过记录 ID 直接获取和更新。
+通过记录 ID 直接查询单条记录详情。**所有更新操作已统一到 `PUT /calendar/{id}`**。
 
 ### GET /records/{id} - 记录详情
 
@@ -620,25 +623,9 @@ Scope: `records.read`
 | stage_name | string | 阶段名称 |
 | creator_name | string | 创建人姓名 |
 
-### PATCH /records/{id} - 更新记录
+### PATCH /records/{id} - 更新记录（已废弃）
 
-Scope: `records.write`
-
-**参数**:
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| title | string | 否 | 标题（不可传空值） |
-| content | string | 否 | 内容（允许清空） |
-| hstatus | int | 否 | 状态: 0=待办, 1=已办（只允许这两个值） |
-| htime | string | 否 | 开始时间 (YYYY-MM-DD HH:mm:ss)，格式必须合法 |
-| endtime | string | 否 | 结束时间，必须 >= htime |
-| time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
-| stage | string | 否 | 阶段 ID (hashid) |
-
-**响应**: 返回更新后的记录详情（同 GET /records/{id}）。
-
-**权限**: 仅记录负责人 (huser) 可更新。
+> **已废弃**，所有更新操作统一使用 `PUT /calendar/{id}`。该端点仍可用但不再迭代新功能。
 
 ---
 

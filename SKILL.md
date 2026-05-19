@@ -49,7 +49,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code}/records | 案件办案记录（仅查询） |
 | GET | /calendar | 日程列表（用 start_date/end_date，禁用 today/this_week） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: assit 协办人UID列表） |
-| PUT | /calendar/{id} | 更新日程 |
+| PUT | /calendar/{id} | 更新日程/记录（状态、人员、时间、阶段等，统一更新入口） |
 | GET | /team/members | 团队成员列表（个人空间不可用） |
 | GET | /clients | 客户列表（keyword 搜索） |
 | GET | /clients/{code} | 客户详情（含关联案件） |
@@ -65,14 +65,20 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /finance | 财务记录（高阶版以上） |
 | GET | /finance/receivables | 应收款列表 |
 | GET | /finance/summary | 财务摘要 |
-| GET | /records/{id} | 记录详情 |
-| PATCH | /records/{id} | 更新记录（hstatus/time_cost 等） |
+| GET | /records/{id} | 记录详情（按ID直接查单条） |
 
 ## 关键概念
 
 ### 日程与办案记录的关系
 
-日程和办案记录是同一张表的不同视图。`POST /calendar` 是创建日程/待办/提醒的唯一入口。`GET /cases/{code}/records` 仅用于查询某案件的办理历史。
+日程和办案记录是同一张表（`sr_record`）的不同视图。**所有创建和更新统一走 calendar 端点**：
+- `POST /calendar` — 创建日程/待办/办案记录（唯一入口）
+- `PUT /calendar/{id}` — 更新任何记录（状态、人员、时间、阶段等，统一入口）
+- `GET /calendar` — 查看日程列表（按日期范围）
+- `GET /cases/{code}/records` — 查看某案件的办案历史
+- `GET /records/{id}` — 按ID直接查单条记录详情
+
+> `PATCH /records/{id}` 已废弃，所有更新操作统一使用 `PUT /calendar/{id}`。
 
 ### 日程关联（重要）
 
@@ -135,7 +141,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "明天和同事一起开庭" | 带协办人日程 | 先 `GET /team/members` 获取 UID → `POST /calendar '{...,assit:"uid1,uid2"}'` |
 | "帮小米案加开庭日程" | 关联案件日程 | 先 `GET "/cases?keyword=小米"` → `POST /calendar '{...,linkid:id,type:1}'` |
 | "日程花费了2.5小时" | 记录工时 | `PUT /calendar/{id} '{"time_cost":150}'` |
-| "把记录标记为已办" | 更新记录 | `PATCH /records/{id} '{"hstatus":1}'` |
+| "把记录标记为已办" | 更新记录 | `PUT /calendar/{id} '{"hstatus":1}'` |
 | "更新客户类型为签约" | 更新客户 | `PATCH /clients/{code} '{"type":1}'` |
 | "帮我创建客户张三，个人，电话138xxxx" | 创建客户 | `GET /clients/create-form` → 确认 → `POST /clients '{name,mark,contact,...}'` |
 | "创建一个单位客户华为" | 创建客户 | `GET /clients/create-form` → 确认 → `POST /clients '{name:"华为",mark:1,...}'` |
