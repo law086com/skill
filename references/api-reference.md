@@ -352,6 +352,7 @@ Scope: `calendar.write`
 | type | int | 是 | 关联类型: 0=不关联, 1=案件, 2=项目, 3=客户（只允许这四个值） |
 | rtype | string | 否 | 工作摘要/分类 |
 | time_cost | int | 否 | 时间花费（分钟），必须 >= 0 |
+| hstatus | int | 否 | 状态: 0=待办(默认), 1=已办（只允许这两个值） |
 | assit | string | 否 | 协办人UID列表，逗号分隔的 hashid（来自 GET /team/members，如 "aB3xKp,mN9wRq"） |
 | allday | int | 否 | 是否全天: 0=否, 1=是 |
 | remind_time | string | 否 | 提醒时间 |
