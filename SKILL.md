@@ -1,6 +1,6 @@
 ---
 name: law086
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、生成文书模板。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"更新记录"、"标记已办"、"安排一下"时触发此技能。
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -62,8 +62,12 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | POST | /projects | 创建项目 |
 | PATCH | /projects/{code} | 更新项目 |
 | GET | /finance | 财务记录（高阶版以上） |
-| GET | /finance/receivables | 应收款列表 |
-| GET | /finance/summary | 财务摘要 |
+| GET | /finance/receivables | 应收款列表（全量返回，支持多维筛选） |
+| GET | /finance/receivables/{id} | 应收款详情（含收款记录、案件/客户信息） |
+| GET | /finance/receiverecord | 收款记录列表（全量返回，与 OA 逻辑一致） |
+| GET | /finance/receiverecord/{id} | 收款记录详情 |
+| PUT | /finance/receiverecord/{id} | 更新收款记录 |
+| GET | /finance/summary | 财务摘要（支持按案件、日期范围筛选） |
 | GET | /records/{id} | 记录详情（按ID直接查单条） |
 
 ## 关键概念
@@ -118,6 +122,29 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 始终用 `start_date`/`end_date`（YYYY-MM-DD），**禁用** `today`/`this_week`（服务端不准）。默认查本周。
 
+### 财务查询指南
+
+应收款和收款记录接口返回**全量数据**（不分页），必须通过参数筛选来限定范围：
+
+**按时间筛选**：使用 `yd_time_range`（约定收款日期）或 `ss_time_range`（实收日期），值为 JSON `{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}`，最长跨度 1 年。
+
+**常用筛选参数**：
+
+| 参数 | 说明 | 适用端点 |
+|------|------|---------|
+| `receivable_status` | 应收款状态: 1=全部未收回, 2=部分收回, 3=全部收回 | receivables |
+| `record_status` | 收款记录状态: 1=待收款, 2=已收款 | receiverecord |
+| `overdue_status` | 过期: 1=未过期, 2=已过期 | receiverecord |
+| `link_keyword` | 关联资源名称搜索（案件/项目/客户） | receivables, receiverecord |
+| `linktype` | 关联类型: 1=案件, 2=项目, 3=客户 | receivables, receiverecord |
+| `title` | 款项名称搜索 | receivables, receiverecord |
+| `amount_ys` | 应收金额范围 | receivables, receiverecord |
+| `amount_ss` | 实收金额范围 | receivables, receiverecord |
+| `sk_uid` | 收款人 | receivables |
+| `uid` | 收款人 | receiverecord |
+
+> **禁止使用** `year`、`status`（在 receiverecord 中无效）等不存在的参数。日期筛选**必须**用 `yd_time_range`/`ss_time_range`/`kp_date`，不接受 `start_date`/`end_date`（那是 summary 接口的参数）。
+
 ### 团队日程
 
 `is_team=1` 查看团队日程（需团队版以上），`uids` 用 `/team/members` 返回的 hashid。展示用 `htime_text`/`huser_text`/`type_text` 等后端预处理好字段。
@@ -161,4 +188,12 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "创建一个单位客户华为" | 创建客户 | `GET /clients/create-form` → 确认 → `POST /clients '{name:"华为",mark:1,...}'` |
 | "新建一个项目xxx，合同纠纷，预算5万" | 创建项目 | `GET /projects/create-form` → 确认 → `POST /projects '{pr_name,pr_type,pr_status,funding,...}'` |
 | "团队日程" | 团队视图 | `GET "/calendar?is_team=1&start_date=...&end_date=..."` |
+| "查询今年应收款" | 应收款列表（按日期） | `GET "/finance/receivables?ss_time_range={\"start\":\"2026-01-01\",\"end\":\"2026-12-31\"}"` |
+| "未收回的应收款" | 筛选未收回 | `GET "/finance/receivables?receivable_status=1"` |
+| "XX案件的应收款" | 按案件名称搜 | `GET "/finance/receivables?link_keyword=XX"` |
+| "应收款汇总" | 财务摘要 | `GET /finance/summary` |
+| "今年收款情况" | 摘要按日期 | `GET "/finance/summary?start_date=2026-01-01&end_date=2026-12-31"` |
+| "收款记录" | 收款记录列表 | `GET /finance/receiverecord` |
+| "待收款记录" | 筛选待收款 | `GET "/finance/receiverecord?record_status=1"` |
+| "已逾期的收款" | 筛选已过期 | `GET "/finance/receiverecord?overdue_status=2"` |
 | "案件云" | 每日概览 | `GET /dashboard` |
