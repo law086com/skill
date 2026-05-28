@@ -850,38 +850,218 @@ Scope: `finance.read`
 
 Scope: `finance.read`
 
+返回符合条件的全部数据（不分页）。日期筛选范围最长 1 年。
+
 **参数**:
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| linktype | int | 否 | 关联类型: 1=案件, 2=项目, 3=客户 |
-| linkid | int | 否 | 关联资源 ID |
-| page | int | 否 | 页码 |
-| limit | int | 否 | 每页条数，默认 20 |
+| linktype | string | 否 | 关联类型，逗号分隔: 1=案件, 2=项目, 3=客户（默认全部） |
+| linkid | string | 否 | 关联资源 ID（hashid），配合 linktype 使用 |
+| receivable_status | string | 否 | 应收款状态，逗号分隔: 1=全部未收回, 2=部分收回, 3=全部收回 |
+| title | string | 否 | 款项名称模糊搜索（同 keyword） |
+| keyword | string | 否 | 同 title |
+| link_keyword | string | 否 | 关联资源名称搜索（案件名/项目名/客户名） |
+| amount_ys | string/json | 否 | 应收金额范围 `{"start":0,"end":99999}` |
+| sk_uid | string | 否 | 收款人 UID（hashid） |
+| yd_time_range | string/json | 否 | 约定收款日期范围 `{"start":"2026-01-01","end":"2026-12-31"}`（最长1年） |
+| ss_time_range | string/json | 否 | 实收日期范围 `{"start":"2026-01-01","end":"2026-12-31"}`（最长1年） |
+| amount_ss | string/json | 否 | 实收金额范围 `{"start":0,"end":99999}`（仅已收款记录） |
 
-**响应 data 字段** (列表项):
+**响应 data 字段**:
+
+```json
+{
+  "data": [
+    {
+      "id": "hashid",
+      "org_id": "hashid",
+      "linktype": 1,
+      "linktype_text": "案件",
+      "linkid": "hashid",
+      "linkid_text": "案件名称",
+      "linkid_info": {"name": "案件名称", "code": "CASE001"},
+      "title": "律师费",
+      "r_amount": "50000.00",
+      "status": 1,
+      "status_text": "全部未收回",
+      "amount_r": 30000,
+      "d_amount": "20000.00",
+      "actual_amount": 30000,
+      "pending_amount": "20000.00",
+      "is_overdue": 1,
+      "record_list": [
+        {
+          "id": "hashid",
+          "amount": 30000,
+          "kp_amount": 0,
+          "kp_date": null,
+          "r_date": "2026-03-01",
+          "date_r": "2026-03-01",
+          "uid": 10,
+          "uid_text": "张律师",
+          "status": 2,
+          "status_text": "已收款",
+          "title": "律师费【第1笔】",
+          "overdue_status": 1
+        }
+      ]
+    }
+  ],
+  "sum": {
+    "r_amount": 50000,
+    "actual_amount": 30000,
+    "pending_amount": 20000,
+    "amount_r": 30000,
+    "record_amount": 30000
+  }
+}
+```
+
+### GET /finance/receivables/{id} - 应收款详情
+
+Scope: `finance.read`
+
+**参数**: 路径参数 `id` (必填，hashid)
+
+**响应 data 字段**:
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | string | 应收款 ID（hashid） |
 | linktype | int | 关联类型: 1=案件, 2=项目, 3=客户 |
 | linkid | string | 关联资源 ID（hashid） |
+| title | string | 款项名称 |
 | r_amount | decimal | 应收金额 |
-| type | int | 类型: 1=合同律师费, 2=计量收费, 3=风险收费, 4=代付费用, 5=协商增收 |
-| type_text | string | 类型文本 |
-| r_date | string | 应收日期 |
-| records | array | 收款记录列表 |
-| records[].amount | decimal | 实收金额 |
-| records[].kp_amount | decimal | 开票金额 |
-| records[].r_date | string | 收款日期 |
+| status_text | string | 状态: 待收款/部分收款/已收完 |
+| total_amount | decimal | 应收总额 |
+| received_amount | decimal | 已收总额 |
+| remaining_amount | decimal | 剩余应收 |
+| payment_records | array | 收款记录列表 |
+| case_info | object | 案件信息（linktype=1时） |
+| client_info | object | 客户信息（linktype=3 或案件关联时） |
+| project_info | object | 项目信息（linktype=2时） |
 
-### GET /finance/receivables/{id} - 应收款详情
+### GET /finance/receiverecord - 收款记录列表
 
 Scope: `finance.read`
 
-**参数**: 路径参数 `id` (必填)
+返回符合条件的全部数据（不分页）。日期筛选范围最长 1 年。与 OA receiverecord 列表逻辑一致。
 
-**响应**: 返回单条应收款的完整数据，含收款记录明细。
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| record_status | string | 否 | 收款记录状态，逗号分隔（1=待收款, 2=已收款）。注意：`status` 参数不用于筛选 |
+| overdue_status | int | 否 | 过期状态: 1=未过期, 2=已过期 |
+| linktype | string | 否 | 关联类型，逗号分隔: 1=案件, 2=项目, 3=客户 |
+| uid | int | 否 | 收款人 UID |
+| title | string | 否 | 款项名称模糊搜索 |
+| link_keyword | string | 否 | 关联资源名称搜索 |
+| kp_date | string/json | 否 | 开票日期范围 `{"start":"...","end":"..."}`（最长1年） |
+| yd_time_range | string/json | 否 | 约定收款日期范围（最长1年） |
+| ss_time_range | string/json | 否 | 实收日期范围（最长1年） |
+| amount_ys | string/json | 否 | 应收金额范围 |
+| amount_ss | string/json | 否 | 实收金额范围 |
+| orderBy | string | 否 | 排序字段，默认 `date_r desc` |
+
+> **参数说明**: `record_status` 筛选收款记录状态（receiverecord.status）；应收款状态请使用 `receivable_status`。`status` 参数在此端点不参与筛选。
+
+**响应 data 字段**:
+
+```json
+{
+  "data": [
+    {
+      "id": "hashid",
+      "receivable_id": "hashid",
+      "linkid": "hashid",
+      "linktype": 1,
+      "linktype_text": "案件",
+      "linkid_text": "案件名称",
+      "linkid_code": "CASE001",
+      "title": "律师费【第1笔】",
+      "amount": 30000,
+      "kp_amount": 0,
+      "kp_date": null,
+      "r_date": "2026-03-01",
+      "date_r": "2026-03-01",
+      "uid": 10,
+      "uid_text": "张律师",
+      "status": 2,
+      "status_text": "已收款",
+      "overdue_status": 1,
+      "remark": "",
+      "amount_r": 30000,
+      "d_amount": 20000,
+      "receivable_actual_amount": 30000,
+      "receivable_pending_amount": 20000,
+      "record_actual_amount": 30000,
+      "record_pending_amount": 0,
+      "firm_apply": {
+        "fbid_code": 0,
+        "fbid_status": 0,
+        "fbid_status_text": "-",
+        "frid_status": 0,
+        "frid_status_text": "-"
+      }
+    }
+  ],
+  "sum": {
+    "r_amount": 50000,
+    "amount_r": 30000,
+    "d_amount": 20000,
+    "actual_amount": 30000,
+    "pending_amount": 20000
+  }
+}
+```
+
+### GET /finance/receiverecord/{id} - 收款记录详情
+
+Scope: `finance.read`
+
+**参数**: 路径参数 `id` (必填，hashid)
+
+**响应 data 字段**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 记录 ID（hashid） |
+| linkid | string | 应收款 ID（hashid） |
+| amount | decimal | 收款金额 |
+| kp_amount | decimal | 开票金额 |
+| kp_date | string | 开票日期 |
+| r_date | string | 约定收款日期 |
+| date_r | string | 实际收款日期 |
+| uid | int | 收款人 UID |
+| status | int | 状态 |
+| status_text | string | 状态文本 |
+| overdue_status | int | 过期状态: 1=未过期, 2=已过期 |
+| remark | string | 备注 |
+| receivable_title | string | 所属应收款项名称 |
+| r_amount | decimal | 所属应收款总额 |
+| link_info | object | 关联资源信息（案件/项目/客户） |
+
+### PUT /finance/receiverecord/{id} - 更新收款记录
+
+Scope: `finance.write`
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | string | 是 | 路径参数，记录 ID（hashid） |
+| amount | decimal | 否 | 收款金额 |
+| kp_amount | decimal | 否 | 开票金额 |
+| kp_date | string | 否 | 开票日期（传空清空） |
+| r_date | string | 否 | 约定收款日期（传空清空） |
+| date_r | string | 否 | 实际收款日期（有值自动设为已收款，无值自动设为待收款） |
+| uid | int | 否 | 收款人 |
+| remark | string | 否 | 备注 |
+| status | int | 否 | 状态（不传时由 date_r 自动推断） |
+
+> 至少提供一个字段。更新后自动同步父表应收款的计算字段。
 
 ### GET /finance/summary - 财务摘要
 
@@ -889,7 +1069,13 @@ Scope: `finance.read`
 
 返回当前组织维度的财务汇总数据。
 
-**参数**: 无
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| start_date | string | 否 | 开始日期 `YYYY-MM-DD` |
+| end_date | string | 否 | 结束日期 `YYYY-MM-DD` |
+| case_id | int | 否 | 按案件筛选 |
 
 **响应 data 字段**:
 
@@ -897,12 +1083,11 @@ Scope: `finance.read`
 |------|------|------|
 | total_receivable | decimal | 应收总额 |
 | total_received | decimal | 已收总额 |
-| total_unreceived | decimal | 未收总额 |
 | total_expense | decimal | 支出总额 |
-| this_month_received | decimal | 本月收款 |
-| this_month_expense | decimal | 本月支出 |
-
-> 注: 具体字段以实际返回为准。
+| total_receivable_remaining | decimal | 剩余应收 |
+| by_status | object | 按状态分组: pending/partial/paid 各含 count 和 amount |
+| by_case | array | 案件应收 Top 10（含 case_id, case_name, total_amount, received_amount, remaining_amount） |
+| by_month | array | 近6个月收款趋势（含 month 和 amount） |
 
 ---
 
@@ -1005,6 +1190,9 @@ Scope: 任意已授权 scope
 - PATCH /projects/{code}
 - GET /finance/receivables
 - GET /finance/receivables/{id}
+- GET /finance/receiverecord
+- GET /finance/receiverecord/{id}
+- PUT /finance/receiverecord/{id}
 - GET /finance/summary
 - GET /search
 - GET /enums
@@ -1023,6 +1211,7 @@ Scope: 任意已授权 scope
 | clients.write | 更新客户信息、创建客户 | PATCH /clients/{id}, GET /clients/create-form, POST /clients |
 | projects.read | 查看项目列表和详情 | GET /projects, GET /projects/{code} |
 | projects.write | 更新项目信息、创建项目 | PATCH /projects/{code}, GET /projects/create-form, POST /projects |
-| finance.read | 查看财务记录和摘要 | GET /finance, GET /finance/{id}, GET /finance/receivables, GET /finance/receivables/{id}, GET /finance/summary |
+| finance.read | 查看财务记录和摘要 | GET /finance, GET /finance/{id}, GET /finance/receivables, GET /finance/receivables/{id}, GET /finance/receiverecord, GET /finance/receiverecord/{id}, GET /finance/summary |
+| finance.write | 更新收款记录 | PUT /finance/receiverecord/{id} |
 | dashboard.read | 每日概览 | GET /dashboard |
 | documents.generate | 生成文书模板 | POST /documents/generate (V1 保留) |
