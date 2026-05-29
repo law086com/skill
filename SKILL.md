@@ -22,6 +22,7 @@ python3 scripts/api.py GET "/cases?keyword=张三&g_status=1"
 python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:00","endtime":"2026-05-10 15:00","type":0}'
 ```
 
+
 脚本自动处理认证、中文编码和响应解析。所有时间使用**北京时间 (CST, UTC+8)**。
 
 ### 响应与错误处理
