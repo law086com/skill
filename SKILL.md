@@ -1,6 +1,6 @@
 ---
 name: law086
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"时触发此技能。
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -69,6 +69,9 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | PUT | /finance/receiverecord/{id} | 更新收款记录 |
 | GET | /finance/summary | 财务摘要（支持按案件、日期范围筛选） |
 | GET | /records/{id} | 记录详情（按ID直接查单条） |
+| GET | /contracts | 合同列表（keyword 模糊搜客户/项目名称，client_keyword/project_keyword 精确按客户/项目搜索，管理员支持 follow_uid） |
+| POST | /contracts | 创建合同（cl_id/pr_id 至少填一个） |
+| PATCH | /contracts/{code} | 更新合同（按 code 标识） |
 
 ## 关键概念
 
@@ -161,6 +164,59 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 **关键**：schema 中的枚举选项和级联树由后端动态返回，AI 必须依据 schema 中的值进行映射，不能凭猜测。
 
+### 合同查询指南
+
+合同列表接口返回**全量数据**（不分页），与客户/项目关联。
+
+**数据权限**：
+- **普通员工**：只能看到自己跟进的客户或项目关联的合同
+- **管理员**：可看到组织下所有合同，支持 `follow_uid` 按跟进人筛选
+
+**筛选参数**：
+
+| 参数 | 说明 |
+|------|------|
+| `keyword` | 模糊搜索（同时匹配客户名称和项目名称），不确定是客户还是项目时使用 |
+| `client_keyword` | 精确按关联客户名称搜索，用户明确提到"客户"时使用 |
+| `project_keyword` | 精确按关联项目名称搜索，用户明确提到"项目"时使用 |
+| `follow_uid` | 指定跟进人筛选（hashid，仅管理员可用） |
+
+**合同状态**：1=未执行, 2=履行中, 3=已终止
+
+**合同字段说明**：
+
+| 字段 | 说明 |
+|------|------|
+| title | 合同名称 |
+| amount | 合同金额（元） |
+| sign_at / sign_at_text | 起始日期 |
+| end_time / end_time_text | 终止日期 |
+| cp_content | 合作内容 |
+| status / status_text | 合作状态（1=未执行/2=履行中/3=已终止） |
+| client | 关联客户（id/code/name） |
+| project | 关联项目（id/pr_code/name） |
+| part_a / part_b | 签约甲方/乙方 |
+
+**新增/更新合同**：`cl_id` 和 `pr_id` 至少填一个（均为 hashid 或数字 ID），其他字段（title/amount/sign_at/end_time/status/cp_content 等）可选。
+
+**识别用户筛选意图**（根据用户描述中的实体类型选择正确的搜索参数）：
+
+| 用户说 | 识别的搜索对象 | 调用 |
+|--------|---------------|------|
+| "我的合同" / "查看合同" | 无筛选 | `GET /contracts` |
+| "华为的合同" | 不确定是客户还是项目 | `GET "/contracts?keyword=华为"` |
+| "客户华为的合同" | 明确是客户 | `GET "/contracts?client_keyword=华为"` |
+| "XX项目的合同" | 明确是项目 | `GET "/contracts?project_keyword=XX"` |
+| "张三跟进的合同" | 跟进人张三 | 先 `GET /team/members` 找张三 UID → `GET "/contracts?follow_uid=xxx"` |
+| "华为的合同" | 不确定客户/项目 | `GET "/contracts?keyword=华为"` |
+| "客户华为的合同" | 明确客户 | `GET "/contracts?client_keyword=华为"` |
+| "XX项目的合同" | 明确项目 | `GET "/contracts?project_keyword=XX"` |
+| "华为的建筑工程项目合同" | 客户+项目 | `GET "/contracts?client_keyword=华为&project_keyword=建筑工程"` |
+| "履行中的合同" | 按状态 | `GET /contracts` 后按 `status=2` 过滤展示 |
+| "金额大于10万的合同" | 按金额 | `GET /contracts` 后按 `amount` 过滤展示 |
+
+**关键字无结果时的降级策略（仅管理员）**：当使用 `keyword` 模糊搜索（即用户未明确指定是客户/项目/跟进人）返回空数据时，如果当前用户是管理员，可以尝试按跟进人搜索：先 `GET /team/members` 查找姓名匹配的成员 UID，再用 `GET "/contracts?follow_uid=xxx"` 查询。如果用户已经明确指定了"客户"、"项目"或"跟进人"，则不走此降级流程，直接告知用户未找到结果。
+
 ## 高危操作
 
 - **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）→ 必须先确认
@@ -197,3 +253,10 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "待收款记录" | 筛选待收款 | `GET "/finance/receiverecord?record_status=1"` |
 | "已逾期的收款" | 筛选已过期 | `GET "/finance/receiverecord?overdue_status=2"` |
 | "案件云" | 每日概览 | `GET /dashboard` |
+| "查看合同" / "我的合同" | 合同列表 | `GET /contracts` |
+| "华为的合同" | 不确定是客户/项目/跟进人 | `GET "/contracts?keyword=华为"` |
+| "客户华为的合同" | 按客户名搜 | `GET "/contracts?client_keyword=华为"` |
+| "XX项目的合同" | 按项目名搜 | `GET "/contracts?project_keyword=XX"` |
+| "张三跟进的合同" | 按跟进人筛 | 先 `GET /team/members` 找张三 UID → `GET "/contracts?follow_uid=xxx"` |
+| "新增合同：法律服务合同，客户华为" | 创建合同 | 先 `GET "/clients?keyword=华为"` → `POST /contracts '{"title":"法律服务合同","cl_id":"xxx"}'` |
+| "更新合同状态为已终止" | 更新合同 | `PATCH /contracts/{code} '{"status":3}'` |

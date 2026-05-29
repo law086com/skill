@@ -11,6 +11,7 @@
 - [Projects 项目](#projects-项目)
 - [Finance 财务](#finance-财务)
 - [Search & Enums 搜索与枚举](#search--enums-搜索与枚举)
+- [Contracts 合同](#contracts-合同)
 - [V1 兼容说明](#v1-兼容说明)
 - [Scope 权限对照表](#scope-权限对照表)
 
@@ -1142,6 +1143,214 @@ Scope: 任意已授权 scope
 
 ---
 
+## Contracts 合同
+
+### GET /contracts - 合同列表
+
+Scope: `contracts.read`
+
+返回当前用户有权查看的所有合同（不分页，全量返回）。
+
+**数据权限**：
+- **普通员工**：返回自己跟进的客户或项目关联的合同（通过 RelatedWorker）
+- **管理员**：返回组织下所有合同；支持 `follow_uid` 指定跟进人筛选
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| client_keyword | string | 否 | 按关联客户名称搜索（用户明确提到"客户"时使用） |
+| project_keyword | string | 否 | 按关联项目名称搜索（用户明确提到"项目"时使用） |
+| keyword | string | 否 | 模糊搜索（同时匹配客户名称和项目名称，不确定是客户还是项目时使用） |
+| follow_uid | string | 否 | 指定跟进人筛选（hashid，仅管理员可用，传入后按该员工的客户/项目过滤） |
+
+**响应 data 字段** (列表项):
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 合同 ID（hashid） |
+| code | string | 合同编码 |
+| title | string | 合同名称 |
+| amount | number | 合同金额（元），可能为 null |
+| num | string | 合同编号 |
+| part_a | string | 签约甲方 |
+| part_b | string | 签约乙方 |
+| sign_at | string | 起始日期 |
+| sign_at_text | string | 起始日期（YYYY-MM-DD） |
+| end_time | string | 终止日期 |
+| end_time_text | string | 终止日期（YYYY-MM-DD） |
+| cp_content | string | 合作内容 |
+| fee_terms | string | 重要条款 |
+| status | int | 合作状态: 1=未执行, 2=履行中, 3=已终止 |
+| status_text | string | 状态文本 |
+| period | int | 合同期限（年） |
+| is_extend | int | 是否自动延期 |
+| extend_at | string | 自动延期期限 |
+| cl_id | string | 关联客户 ID（hashid） |
+| pr_id | string | 关联项目 ID（hashid） |
+| case_id | string | 关联案件 ID（hashid） |
+| add_uid | string | 创建者 ID（hashid） |
+| client | object | 关联客户信息（id/code/name），可能为 null |
+| project | object | 关联项目信息（id/pr_code/name），可能为 null |
+
+**示例请求**:
+
+```bash
+# 查看所有合同
+GET /contracts
+
+# 模糊搜索（不确定是客户还是项目）
+GET "/contracts?keyword=华为"
+
+# 明确按客户名称搜索
+GET "/contracts?client_keyword=华为"
+
+# 明确按项目名称搜索
+GET "/contracts?project_keyword=建筑工程"
+
+# 管理员按跟进人筛选
+GET "/contracts?follow_uid=J3GGbB3j"
+```
+
+**示例响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "data": [
+    {
+      "id": "abc123",
+      "code": "aBcDeFgH12345678",
+      "title": "法律服务委托合同",
+      "amount": 50000,
+      "status": 2,
+      "status_text": "履行中",
+      "sign_at_text": "2024-01-15",
+      "end_time_text": "2025-01-15",
+      "cp_content": "提供法律顾问服务",
+      "client": {"id": "xyz789", "code": "cL12345678", "name": "某某公司"},
+      "project": null
+    }
+  ]
+}
+```
+
+---
+
+### POST /contracts - 创建合同
+
+Scope: `contracts.write`
+
+创建一份新合同。`cl_id` 和 `pr_id` 至少填一个。所有 ID 支持 hashid 或数字格式。
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | 是 | 合同名称（最长 128 字） |
+| cl_id | string | 条件必填 | 关联客户 ID（与 pr_id 至少填一个） |
+| pr_id | string | 条件必填 | 关联项目 ID（与 cl_id 至少填一个） |
+| case_id | string | 否 | 关联案件 ID |
+| num | string | 否 | 合同编号 |
+| part_a | string | 否 | 签约甲方 |
+| part_b | string | 否 | 签约乙方 |
+| amount | number | 否 | 合同金额（元） |
+| cp_content | string | 否 | 合作内容 |
+| fee_terms | string | 否 | 重要条款 |
+| sign_at | string | 否 | 起始日期（YYYY-MM-DD） |
+| end_time | string | 否 | 终止日期（YYYY-MM-DD） |
+| period | int | 否 | 合同期限（年） |
+| status | int | 否 | 合作状态: 1=未执行, 2=履行中, 3=已终止 |
+| is_extend | int | 否 | 是否自动延期 |
+| extend_at | string | 否 | 自动延期期限 |
+
+**归属校验**：普通员工只能关联自己跟进的客户/项目，管理员只能关联本组织的客户/项目。
+
+**示例请求**:
+
+```bash
+POST /contracts
+{
+  "title": "法律服务委托合同",
+  "cl_id": "xyz789",
+  "amount": 50000,
+  "part_a": "某某公司",
+  "sign_at": "2024-01-15",
+  "end_time": "2025-01-15",
+  "status": 2
+}
+```
+
+**示例响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "data": {
+    "id": "abc123",
+    "code": "aBcDeFgH12345678",
+    "title": "法律服务委托合同"
+  }
+}
+```
+
+---
+
+### PATCH /contracts/{code} - 更新合同
+
+Scope: `contracts.write`
+
+更新指定合同的部分字段。路径参数使用合同 `code`（非 id）。
+
+**数据权限**：普通员工只能更新自己跟进的客户/项目关联的合同，管理员可更新组织下所有合同。
+
+**请求参数**（均可选，支持部分更新）:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| title | string | 合同名称（不可清空） |
+| cl_id | string | 关联客户 ID（传空字符串清空） |
+| pr_id | string | 关联项目 ID（传空字符串清空） |
+| case_id | string | 关联案件 ID（传空字符串清空） |
+| num | string | 合同编号 |
+| part_a | string | 签约甲方 |
+| part_b | string | 签约乙方 |
+| amount | number | 合同金额 |
+| cp_content | string | 合作内容 |
+| fee_terms | string | 重要条款 |
+| sign_at | string | 起始日期 |
+| end_time | string | 终止日期 |
+| period | int | 合同期限 |
+| status | int | 合作状态: 1, 2, 3 |
+| is_extend | int | 是否自动延期 |
+| extend_at | string | 自动延期期限 |
+
+**归属校验**：变更 cl_id/pr_id 时会校验新客户/项目的归属权。
+
+**示例请求**:
+
+```bash
+PATCH /contracts/aBcDeFgH12345678
+{
+  "status": 3,
+  "amount": 60000
+}
+```
+
+**示例响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "更新成功",
+  "data": null
+}
+```
+
+---
+
 ## V1 兼容说明
 
 ### 端点变更
@@ -1215,3 +1424,5 @@ Scope: 任意已授权 scope
 | finance.write | 更新收款记录 | PUT /finance/receiverecord/{id} |
 | dashboard.read | 每日概览 | GET /dashboard |
 | documents.generate | 生成文书模板 | POST /documents/generate (V1 保留) |
+| contracts.read | 查看合同列表 | GET /contracts |
+| contracts.write | 创建、更新合同 | POST /contracts, PATCH /contracts/{code} |
