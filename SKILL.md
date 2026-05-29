@@ -22,6 +22,7 @@ python3 scripts/api.py GET "/cases?keyword=张三&g_status=1"
 python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:00","endtime":"2026-05-10 15:00","type":0}'
 ```
 
+
 脚本自动处理认证、中文编码和响应解析。所有时间使用**北京时间 (CST, UTC+8)**。
 
 ### 响应与错误处理
@@ -82,8 +83,6 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 - `PUT /calendar/{id}` — 更新任何记录（状态、人员、时间、阶段等，统一入口）
 - `GET /calendar` — 查看日程和记录列表（按日期范围，或按 type+linkid 查案件/项目/客户记录）
 - `GET /records/{id}` — 按ID直接查单条记录详情
-
-> `PATCH /records/{id}` 已废弃，所有更新操作统一使用 `PUT /calendar/{id}`。
 
 ### 用户意图 → API 映射（创建记录类）
 
@@ -220,6 +219,14 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 ## 高危操作
 
 - **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）→ 必须先确认
+
+## 不支持的操作
+
+当前 Open API **不支持删除类操作**（删除案件、删除日程、删除客户、删除项目等），也没有对应端点。当用户提出删除需求，或请求的业务场景没有相应的 API 端点时，直接回复：
+
+> 该操作暂不支持在 AI 助手中完成，请在 OA 网页端或 APP 中进行相应操作。
+
+不要尝试调用不存在的端点，也不要模拟删除行为。
 
 ## 使用示例
 
