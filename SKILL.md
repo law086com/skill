@@ -229,7 +229,6 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 
 **上传文件**：使用 `POST /cases/{code}/files`，发送 `multipart/form-data`，包含 `file` 字段（文件本身）。可选参数：
 - `record_id`（hashid）— 关联到指定日程/办案记录，文件在日程详情中可见
-- `folder_id` — 归类到指定文件夹
 
 **文件限制**：
 - 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
