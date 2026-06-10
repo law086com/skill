@@ -8,6 +8,8 @@
     python3 api.py PATCH /cases/ABC123 '{"stage_text":"已开庭"}'
     python3 api.py PUT /calendar/abc123 '{"title":"新标题"}'
     python3 api.py DELETE /calendar/abc123
+    python3 api.py UPLOAD /cases/ABC123/files /path/to/file.pdf
+    python3 api.py UPLOAD /cases/ABC123/files /path/to/file.pdf '{"folder_id":0}'
 
 自动从同目录的 .env 文件加载 API_BASE_URL 和 PAT_TOKEN。
 """
@@ -24,6 +26,9 @@ try:
     from urllib.parse import quote, urlparse, quote_plus
 except ImportError:
     from urllib2 import Request, urlopen, HTTPError, URLError
+
+import mimetypes
+import uuid
 
 
 def load_env():
@@ -168,6 +173,93 @@ def make_request(method, base_url, token, path, body=None):
         }
 
 
+def make_upload_request(method, base_url, token, path, file_path, extra_fields=None):
+    """发送 multipart/form-data 上传文件请求并返回格式化的响应"""
+    if not path.startswith('/'):
+        path = '/'
+
+    url = base_url + path
+
+    if not os.path.exists(file_path):
+        return {'code': -1, 'msg': '文件不存在: {}'.format(file_path)}
+
+    file_name = os.path.basename(file_path)
+    file_size = os.path.getsize(file_path)
+
+    # 10MB 限制提示
+    if file_size > 10 * 1024 * 1024:
+        return {'code': -1, 'msg': '文件大小超过10MB限制，请到 OA 网页端上传'}
+
+    content_type, _ = mimetypes.guess_type(file_path)
+    if not content_type:
+        content_type = 'application/octet-stream'
+
+    boundary = uuid.uuid4().hex
+    lines = []
+
+    # 添加额外字段
+    if extra_fields:
+        for key, value in extra_fields.items():
+            lines.append('--{}'.format(boundary))
+            lines.append('Content-Disposition: form-data; name="{}"'.format(key))
+            lines.append('')
+            lines.append(str(value))
+
+    # 添加文件字段
+    lines.append('--{}'.format(boundary))
+    lines.append('Content-Disposition: form-data; name="file"; filename="{}"'.format(file_name))
+    lines.append('Content-Type: {}'.format(content_type))
+    lines.append('')
+    lines.append('')
+
+    body_prefix = '\r\n'.join(lines).encode('utf-8')
+    body_suffix = '\r\n--{}--\r\n'.format(boundary).encode('utf-8')
+
+    with open(file_path, 'rb') as f:
+        body = body_prefix + f.read() + body_suffix
+
+    headers = {
+        'Authorization': 'Bearer {}'.format(token),
+        'Content-Type': 'multipart/form-data; boundary={}'.format(boundary),
+    }
+
+    req = Request(url, data=body, headers=headers)
+    req.method = 'POST'
+
+    try:
+        response = urlopen(req, timeout=60)
+        resp_bytes = response.read()
+        encoding = response.headers.get_content_charset() or 'utf-8'
+        resp_text = resp_bytes.decode(encoding)
+
+        try:
+            resp_json = json.loads(resp_text)
+        except (json.JSONDecodeError, ValueError):
+            return {'code': -1, 'msg': '响应非 JSON', 'raw': resp_text[:500]}
+
+        return resp_json
+
+    except HTTPError as e:
+        body_text = ''
+        try:
+            body_text = e.read().decode('utf-8', errors='replace')[:500]
+        except Exception:
+            pass
+
+        if e.code == 401:
+            return {'code': 2, 'msg': 'Token 无效或已过期，请重新生成 PAT', 'http_status': e.code}
+        elif e.code == 403:
+            return {'code': 3, 'msg': '权限不足，请检查 PAT 的 scope 设置', 'http_status': e.code}
+        else:
+            return {'code': -1, 'msg': 'HTTP {} 错误'.format(e.code), 'http_status': e.code, 'detail': body_text}
+
+    except URLError as e:
+        return {'code': -1, 'msg': '网络错误: {}'.format(str(e.reason))}
+
+    except Exception as e:
+        return {'code': -1, 'msg': '请求异常: {}'.format(str(e))}
+
+
 def _ensure_stdout_utf8():
     """强制 stdout/stderr 使用 UTF-8 编码，避免中文乱码"""
     if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
@@ -181,36 +273,60 @@ def main():
 
     if len(sys.argv) < 3:
         print('用法: python3 api.py <METHOD> <PATH> [JSON_BODY]')
+        print('      python3 api.py UPLOAD <PATH> <FILE_PATH> [JSON_FIELDS]')
         print('示例: python3 api.py GET /cases')
         print('      python3 api.py POST /calendar \'{"title":"开庭"}\'')
         print('      python3 api.py PATCH /records/abc123 \'{"hstatus":1}\'')
+        print('      python3 api.py UPLOAD /cases/ABC123/files /path/to/file.pdf')
         sys.exit(1)
 
     method = sys.argv[1].upper()
     path = sys.argv[2]
 
-    if method not in ('GET', 'POST', 'PUT', 'PATCH', 'DELETE'):
+    if method == 'UPLOAD':
+        if len(sys.argv) < 4:
+            print('用法: python3 api.py UPLOAD <PATH> <FILE_PATH> [JSON_FIELDS]')
+            sys.exit(1)
+
+        file_path = sys.argv[3]
+        extra_fields = None
+        if len(sys.argv) > 4:
+            try:
+                extra_fields = json.loads(sys.argv[4])
+            except json.JSONDecodeError as e:
+                print(json.dumps({
+                    'code': -1,
+                    'msg': 'JSON 解析失败: {}'.format(str(e)),
+                    'input': sys.argv[4][:200]
+                }, ensure_ascii=False))
+                sys.exit(1)
+
+        base_url, token = load_env()
+        result = make_upload_request('UPLOAD', base_url, token, path, file_path, extra_fields)
+
+    elif method not in ('GET', 'POST', 'PUT', 'PATCH', 'DELETE'):
         print(json.dumps({
             'code': -1,
             'msg': '不支持的 HTTP 方法: {}'.format(method),
-            'supported': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+            'supported': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'UPLOAD']
         }, ensure_ascii=False))
         sys.exit(1)
 
-    body = None
-    if len(sys.argv) > 3:
-        try:
-            body = json.loads(sys.argv[3])
-        except json.JSONDecodeError as e:
-            print(json.dumps({
-                'code': -1,
-                'msg': 'JSON 解析失败: {}'.format(str(e)),
-                'input': sys.argv[3][:200]
-            }, ensure_ascii=False))
-            sys.exit(1)
+    else:
+        body = None
+        if len(sys.argv) > 3:
+            try:
+                body = json.loads(sys.argv[3])
+            except json.JSONDecodeError as e:
+                print(json.dumps({
+                    'code': -1,
+                    'msg': 'JSON 解析失败: {}'.format(str(e)),
+                    'input': sys.argv[3][:200]
+                }, ensure_ascii=False))
+                sys.exit(1)
 
-    base_url, token = load_env()
-    result = make_request(method, base_url, token, path, body)
+        base_url, token = load_env()
+        result = make_request(method, base_url, token, path, body)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

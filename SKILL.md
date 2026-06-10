@@ -1,6 +1,6 @@
 ---
 name: law086
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"时触发此技能。
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -12,6 +12,10 @@ description: 案件云(law086) AI集成。让律师通过自然语言操作案�
 1. 用户在 OA「个人设置 > AI管理」生成 PAT Token（以 `law086_pat_` 开头）
 2. 将 `API_BASE_URL` 和 `PAT_TOKEN` 写入 `.env` 文件（与 SKILL.md 同级）
 3. 若 Token 为占位值，提示用户替换
+
+## 更新 Skill
+
+**更新只需 `git pull`，不要删除重装**（会丢失 `.env` 中的 PAT Token 配置）。详见 README.md。
 
 ## API 调用
 
@@ -47,6 +51,9 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code} | 案件详情（含当事人、阶段、财务） |
 | PATCH | /cases/{code} | 更新案件（stage_text/degree/anhao 等）⚠️ process_code 需确认 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
+| POST | /cases/{code}/files | 上传文件到案件（multipart/form-data） |
+| GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
+| GET | /cases/{code}/files/{fileId}/url | 获取文件访问链接 |
 | GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: assit 协办人UID列表） |
 | PUT | /calendar/{id} | 更新日程/记录（状态、人员、时间、阶段等，统一更新入口） |
@@ -216,6 +223,26 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 **关键字无结果时的降级策略（仅管理员）**：当使用 `keyword` 模糊搜索（即用户未明确指定是客户/项目/跟进人）返回空数据时，如果当前用户是管理员，可以尝试按跟进人搜索：先 `GET /team/members` 查找姓名匹配的成员 UID，再用 `GET "/contracts?follow_uid=xxx"` 查询。如果用户已经明确指定了"客户"、"项目"或"跟进人"，则不走此降级流程，直接告知用户未找到结果。
 
+### 案件附件管理
+
+AI Agent 可以为案件上传文件、查看附件列表、获取文件访问链接。
+
+**上传文件**：使用 `POST /cases/{code}/files`，发送 `multipart/form-data`，包含 `file` 字段（文件本身）。可选参数 `folder_id`（文件夹）和 `record_id`（关联记录）。
+
+**文件限制**：
+- 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
+- 文件大小: 最大 10MB
+- 文件名: 最大 128 字符
+- 超出限制时会提示"请到 OA 网页端上传"
+
+**识别用户意图**：
+
+| 用户说 | 推断意图 | 调用 |
+|--------|----------|------|
+| "上传文件到XX案" | 上传附件 | 先 `GET /cases?keyword=XX` → `POST /cases/{code}/files` |
+| "查看案件附件" | 文件列表 | 先 `GET /cases?keyword=XX` → `GET /cases/{code}/files` |
+| "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |
+
 ## 高危操作
 
 - **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）→ 必须先确认
@@ -267,3 +294,6 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "张三跟进的合同" | 按跟进人筛 | 先 `GET /team/members` 找张三 UID → `GET "/contracts?follow_uid=xxx"` |
 | "新增合同：法律服务合同，客户华为" | 创建合同 | 先 `GET "/clients?keyword=华为"` → `POST /contracts '{"title":"法律服务合同","cl_id":"xxx"}'` |
 | "更新合同状态为已终止" | 更新合同 | `PATCH /contracts/{code} '{"status":3}'` |
+| "查看案件附件" | 案件文件列表 | `GET /cases/{code}/files` |
+| "上传文件到XX案" | 上传附件 | 先搜索案件 → `POST /cases/{code}/files` (multipart) |
+| "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |

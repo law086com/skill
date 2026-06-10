@@ -5,6 +5,7 @@
 - [认证与通用规范](#认证与通用规范)
 - [Dashboard](#dashboard)
 - [Cases 案件](#cases-案件)
+- [Case Files 案件附件](#case-files-案件附件)
 - [Calendar 日程](#calendar-日程)
 - [Clients 客户](#clients-客户)
 - [Records 记录](#records-记录)
@@ -222,6 +223,123 @@ Scope: `cases.read`
 | type | int | 类型 |
 | active | int | 是否当前阶段 (1=是) |
 | index | int | 排序序号 |
+
+---
+
+## Case Files 案件附件
+
+> 案件附件管理，支持上传、列表和获取文件链接。文件存储在阿里云 OSS。
+
+### POST /cases/{code}/files - 上传文件到案件
+
+Scope: `cases.write`
+
+使用 `multipart/form-data` 上传文件。`file` 字段为必填的文件内容。
+
+**请求参数** (multipart/form-data):
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file | file | 是 | 上传的文件 |
+| folder_id | int | 否 | 文件夹 ID，默认 0 |
+| record_id | int | 否 | 关联记录 ID，默认 0 |
+
+**文件限制**:
+- 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
+- 文件大小: 最大 10MB
+- 文件名: 最大 128 字符
+- 超出限制时返回错误提示，建议到 OA 网页端上传
+
+**成功响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "提交成功",
+  "data": {
+    "id": "J3GGbB3j",
+    "file_name": "合同扫描件",
+    "ext": "pdf",
+    "save_path": "/uploads/cfile/20260609/abc123.pdf",
+    "file_url": "https://law086com.oss-cn-hangzhou.aliyuncs.com/uploads/cfile/20260609/abc123.pdf"
+  }
+}
+```
+
+**错误响应**:
+
+| 错误消息 | 说明 |
+|---------|------|
+| 案件不存在或无权限访问 | case_code 无效或无权操作该案件 |
+| 请选择要上传的文件 | 未提供 file 字段 |
+| 文件大小超过10MB限制，请到 OA 网页端上传 | 文件超过 10MB |
+| 该文件类型不支持上传，请到 OA 网页端上传 | 扩展名不在白名单中 |
+| 文件名称超过128字符限制，请到 OA 网页端上传 | 文件名过长 |
+
+### GET /cases/{code}/files - 案件附件列表
+
+Scope: `cases.read`
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| folder_id | int | 否 | 按文件夹筛选 |
+| limit | int | 否 | 每页条数，默认 20 |
+| page | int | 否 | 页码，默认 1 |
+
+**成功响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": "J3GGbB3j",
+        "file_name": "合同扫描件",
+        "ext": "pdf",
+        "save_path": "/uploads/cfile/20260609/abc123.pdf",
+        "d_uid": "Xk9mN2pL",
+        "created_at": "2026-06-09 14:30",
+        "file_url": "https://law086com.oss-cn-hangzhou.aliyuncs.com/uploads/cfile/20260609/abc123.pdf"
+      }
+    ],
+    "total": 1,
+    "per_page": 20,
+    "last_page": 1
+  }
+}
+```
+
+### GET /cases/{code}/files/{fileId}/url - 获取文件访问链接
+
+Scope: `cases.read`
+
+返回文件的访问 URL。`fileId` 为 hashid 编码的文件 ID。
+
+**成功响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "data": {
+    "file_url": "https://law086com.oss-cn-hangzhou.aliyuncs.com/uploads/cfile/20260609/abc123.pdf",
+    "file_name": "合同扫描件.pdf",
+    "ext": "pdf"
+  }
+}
+```
+
+**错误响应**:
+
+| 错误消息 | 说明 |
+|---------|------|
+| 案件不存在或无权限访问 | case_code 无效或无权访问 |
+| 文件不存在 | fileId 无效或文件不属于该案件 |
 
 ---
 

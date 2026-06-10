@@ -44,7 +44,19 @@ PAT_TOKEN=law086_pat_你的令牌
 3. 点击"生成新令牌"，选择权限范围
 4. 复制 Token（以 `law086_pat_` 开头）到 `.env`
 
-### 4. 使用
+### 4. 更新 Skill
+
+**⚠️ 不要删除重装！** 删除会丢失 `.env` 配置（包括 PAT Token），导致需要重新生成。
+
+正确方式 — 进入 skill 目录拉取更新：
+
+```bash
+cd ~/.claude/skills/law086/ && git pull
+```
+
+`.env` 文件不在 git 管理范围内，`git pull` 不会覆盖你的配置。
+
+### 5. 使用
 
 在 AI Agent 中直接用自然语言：
 
@@ -62,7 +74,7 @@ PAT_TOKEN=law086_pat_你的令牌
 | 模块 | Scope | 说明 |
 |------|-------|------|
 | Dashboard | dashboard.read | 每日概览（日程、待办、案件动态） |
-| Cases | cases.read / cases.write | 案件列表、详情、阶段、办案记录、更新案件 |
+| Cases | cases.read / cases.write | 案件列表、详情、阶段、办案记录、更新案件、附件管理 |
 | Calendar | calendar.read / calendar.write | 日程查询（个人/团队）、创建、更新 |
 | Clients | clients.read / clients.write | 客户列表、详情、联系人、更新客户 |
 | Records | records.read / records.write | 独立记录查看、更新（标记已办等） |
