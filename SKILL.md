@@ -227,12 +227,15 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 AI Agent 可以为案件上传文件、查看附件列表、获取文件访问链接。
 
-**上传文件**：使用 `POST /cases/{code}/files`，发送 `multipart/form-data`，包含 `file` 字段（文件本身）。可选参数 `folder_id`（文件夹）和 `record_id`（关联记录）。
+**上传文件**：使用 `POST /cases/{code}/files`，发送 `multipart/form-data`，包含 `file` 字段（文件本身）。可选参数：
+- `record_id`（hashid）— 关联到指定日程/办案记录，文件在日程详情中可见
+- `folder_id` — 归类到指定文件夹
 
 **文件限制**：
 - 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
 - 文件大小: 最大 10MB
 - 文件名: 最大 128 字符
+- 每日上传: 基础版 10 个/天，其他版本 100 个/天
 - 超出限制时会提示"请到 OA 网页端上传"
 
 **识别用户意图**：
@@ -240,8 +243,12 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | 用户说 | 推断意图 | 调用 |
 |--------|----------|------|
 | "上传文件到XX案" | 上传附件 | 先 `GET /cases?keyword=XX` → `POST /cases/{code}/files` |
+| "给这条记录上传文件" | 关联日程上传 | 先获取 record_id → `POST /cases/{code}/files`（带 `record_id`） |
+| "把文件附加到今天的日程" | 日程关联文件 | 先 `GET /calendar` 获取 record_id → `POST /cases/{code}/files`（带 `record_id`） |
 | "查看案件附件" | 文件列表 | 先 `GET /cases?keyword=XX` → `GET /cases/{code}/files` |
 | "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |
+
+**关联日程的流程**：用户说"把XX文件附加到今天的日程"时，需先通过日程获取 `record_id`，再上传文件并传入 `record_id`。注意日程必须已关联案件（`type:1`），这样才能确定 `case_code`。
 
 ## 高危操作
 
@@ -296,4 +303,5 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "更新合同状态为已终止" | 更新合同 | `PATCH /contracts/{code} '{"status":3}'` |
 | "查看案件附件" | 案件文件列表 | `GET /cases/{code}/files` |
 | "上传文件到XX案" | 上传附件 | 先搜索案件 → `POST /cases/{code}/files` (multipart) |
+| "把文件附加到这条记录" | 关联日程上传 | 获取 record_id → `POST /cases/{code}/files`（带 record_id） |
 | "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |
