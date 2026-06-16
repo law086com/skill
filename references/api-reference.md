@@ -179,29 +179,118 @@ Scope: `cases.read`
 
 Scope: `cases.write` | **高危操作，需二次确认**
 
-V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`。
+V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符串，非数字 id 也非 hashid）。
 
-**参数**:
+**参数**（仅以下字段可更新，传入其它字段会被静默忽略）:
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| status | string | 否 | 案件状态文本 |
-| g_status | int | 否 | 全局状态: 1=在办, 2=结案, 3=归档 |
-| stage_text | string | 否 | 当前阶段文本 |
-| case_mark | string | 否 | 案件备注（允许清空） |
-| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要（只允许这三个值） |
-| fee_type | int | 否 | 收费类型 |
-| anyou | string | 否 | 案由 |
-| unit_name | string | 否 | 受理单位名称 |
-| unit_type | int | 否 | 受理单位类型 |
 | process_code | int | 否 | 审理程序代码（只允许 GET /enums 返回的合法值） |
-| anhao | string | 否 | 案号（最大 200 字） |
-| charge_desc | string | 否 | 收费描述（最大 2000 字，允许清空） |
-| current_stage_id | string | 否 | 当前阶段 ID（hashid，必须属于当前案件） |
+| case_mark | string | 否 | 案件备注（允许清空） |
+| anhao | string | 否 | 案号（最大 128 字） |
+| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要（只允许这三个值） |
+| charge_desc | string | 否 | 收费描述（最大 100 字，允许清空） |
+| current_stage_id | string | 否 | 当前阶段 ID（hashid 编码，必须属于当前案件，切换该阶段为当前活跃阶段） |
+| anyou | string | 否 | 案由（最大 64 字） |
+| unit_name | string | 否 | 受理单位名称（最大 128 字）⚠️ **必须与 `unit_type` 同时提供** |
+| unit_type | int | 否 | 受理单位类型: 1=法院, 2=检察院, 3=公安机关, 4=仲裁机构, 5=调解机构, 6=鉴定机构, 7=行政机构 ⚠️ **必须与 `unit_name` 同时提供** |
+| stage_text | string | 否 | 阶段文本（不可传空值，新增或激活该阶段为当前阶段） |
 
-> 至少提供一个字段。更新前须向用户展示变更摘要并确认。
+> **不可更新字段**：`status`、`g_status`（结案/归档）、`host`/`assit`（律师团队）、`fee_type` 等属独立业务流程，需在 OA 网页端操作，Open API 不开放。这些字段即使传入也会被忽略。
+>
+> 至少提供一个字段。更新前须向用户展示变更摘要并确认。`unit_name` 与 `unit_type` 必须同时提供，单独传任一项不会写入。
 
-**响应**: 返回更新后的案件完整数据。
+**响应**: 返回更新后的案件完整数据（同 GET /cases/{code} 的 data 结构）。
+
+### POST /cases - 创建案件
+
+Scope: `cases.write`
+
+创建新案件。走**直接 POST + enums 引导**范式（不走 create-form 两步流程）。创建前应先调用 `GET /enums` 获取枚举字典（取 `case_type` 案件类型、`case_unit_type` 受理单位类型等），并向用户展示人类可读的确认信息后再提交。
+
+**请求头**:
+
+```
+Authorization: Bearer {PAT_TOKEN}
+Content-Type: application/json
+```
+
+**路径**: `POST /cases`
+
+**请求参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| type | int | 是 | 案件类型: 1=民事, 2=商事, 3=仲裁, 4=刑事, 5=行政（只允许这五个值） |
+| privyc_data | string | 是 | 当事人 JSON 字符串（见下方子结构表），至少一个对象含非空 `name` |
+| case_name | string | 否 | 案件名。留空时系统按当事人"原告名 诉 被告名"自动拼接，识别不出原被告用"类型+日期"兜底 |
+| c_num | string | 否 | 内部案号，留空系统自动按组织序号生成 |
+| anyou | string | 否 | 案由（最大 64 字） |
+| anhao | string | 否 | 案号（最大 128 字） |
+| degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要 |
+| charge_desc | string | 否 | 收费描述（最大 100 字） |
+| c_amount | number | 否 | 标的额（数字） |
+| w_fee | number | 否 | 代理费（数字） |
+| process_code | int | 否 | 审理程序代码（参考 GET /enums） |
+| case_mark | string | 否 | 案件备注 |
+| pr_time | string | 否 | 委托时间 (YYYY-MM-DD)，默认当天 |
+| stage_text | string | 否 | 初始阶段文本 |
+
+**`privyc_data` 子结构**（JSON 数组，序列化为字符串传入）:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 至少一个对象非空 | 当事人名称 |
+| type | int | 否 | 1=委托方/原告方, 2=对方/被告方（决定自动案件名拼接） |
+| short_name | string | 否 | 简称 |
+| c_type | int | 否 | 当事人细类 |
+| dsr_type | int | 否 | 1=个人, 2=单位 |
+| sex | int | 否 | 性别 |
+| nation | string | 否 | 民族 |
+| card_num | string | 否 | 证件号码 |
+| phone | string | 否 | 联系电话 |
+| email | string | 否 | 邮箱 |
+| address | string | 否 | 地址 |
+| legal_man | string | 否 | 法定代表人 |
+| mark | string | 否 | 备注 |
+
+> **自动生成（客户端不要传）**：`case_code`、`c_num`（留空时按组织序号生成）、案件名（未传 `case_name` 时拼接）、主办律师 related_worker（自动 = PAT 调用者，使创建后案件对创建人可见）。
+
+**成功响应**:
+
+```json
+{
+  "code": 0,
+  "msg": "",
+  "data": {
+    "case_code": "aBcDeFgH12345678",
+    "c_num": "AJ20260616001",
+    "id": "J3GGbB3j",
+    "case_name": "张三 诉 李四"
+  }
+}
+```
+
+**错误响应**:
+
+| 错误消息 | 说明 |
+|---------|------|
+| 案件类型无效，只允许 1-5 | `type` 缺失或不在合法范围 |
+| 当事人名称不能为空 | `privyc_data` 为空或所有对象 name 均为空 |
+| 案由长度不能超过 64 | `anyou` 超长 |
+| 案号长度不能超过 128 | `anhao` 超长 |
+
+> 缺少 `cases.write` scope 时返回 `code:"3"`（权限不足）。
+
+**curl 示例**:
+
+```bash
+echo '{"type":1,"privyc_data":"[{\"name\":\"张三\",\"type\":1},{\"name\":\"李四\",\"type\":2}]","anyou":"借款纠纷"}' > /tmp/case_req.json
+curl -s -X POST "{BASE}/cases" \
+  -H "Authorization: Bearer {TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d @/tmp/case_req.json
+```
 
 ### GET /cases/{code}/stages - 案件阶段列表
 
@@ -1501,6 +1590,7 @@ PATCH /contracts/aBcDeFgH12345678
 
 - GET /dashboard
 - GET /team/members (团队成员列表)
+- POST /cases (创建案件)
 - PATCH /cases/{id} (替代 PUT)
 - GET /cases/{id}/stages
 - PUT /calendar/{id}
@@ -1531,7 +1621,7 @@ PATCH /contracts/aBcDeFgH12345678
 | Scope | 说明 | 涉及端点 |
 |-------|------|----------|
 | cases.read | 查看案件列表、详情、搜索 | GET /cases, GET /cases/{id}, GET /cases/{id}/stages, GET /search |
-| cases.write | 更新案件 | PATCH /cases/{id} |
+| cases.write | 创建、更新案件 | POST /cases, PATCH /cases/{id} |
 | calendar.read | 查看日程和团队成员 | GET /team/members, GET /calendar |
 | calendar.write | 创建/更新/日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
 | clients.read | 查看客户信息和联系人 | GET /clients, GET /clients/{id}, GET /clients/{id}/contacts |
