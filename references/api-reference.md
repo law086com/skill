@@ -78,14 +78,16 @@ curl -s -X POST "{BASE}/calendar" -H "Authorization: Bearer {TOKEN}" \
 | 个人空间本人 | 全部个人数据 |
 | 团队/律所管理员或拥有者 | 本 org 下全部数据 |
 | 团队/律所普通成员 | 只能看自己参与的数据（RelatedWorker 过滤） |
-| 律所拥有者（顶层律所 org + OWNER 角色，**需服务端开启** `pat.firm_scope_enabled`） | 读端点可见范围自动展开为「顶层律所 + 所有直接子团队 org」（扁平一层）。律所拥有者的 AI Agent 可跨子团队看全所案件/客户/项目/财务/合同/日程/记录等全部读端点。 |
+| 律所拥有者（顶层律所 org + OWNER 角色，全所范围始终开启） | **读 + 写端点均跨子团队**：读端点（GET）全所可见；编辑端点（PATCH/PUT/上传）可操作全所任意记录（保留记录自身 org_id）；新建端点（POST /cases、/clients、/projects、/calendar、/contracts）支持可选请求参数 `org_id`（hashid）把记录归属到本所内任意子团队。 |
 
-> **律所拥有者全所范围（Firm-Scope PAT）**：
-> - 仅在读端点（GET 类）生效；**写端点（创建/更新/上传/合同创建）不跨子团队**，仍按 PAT 主 org_id 归属。
-> - 非 owner（普通成员/团队管理员）PAT 行为**零变化**。
+> **律所拥有者全所范围（Firm-Scope PAT，始终开启）**：
+> - **读端点**：全所可见（顶层律所 + 所有直接子团队 org）。
+> - **编辑端点**：owner 可跨子团队编辑/上传任意记录；编辑**不改归属**（保留记录自身 org_id），成员校验用记录自身 org。
+> - **新建端点**：`POST /cases`、`POST /clients`、`POST /projects`、`POST /calendar`、`POST /contracts` 支持可选请求参数 `org_id`（hashid）。owner 可指定归属到本所内任意子团队，解码后校验 ∈ 全所集合，不在则报错 `"目标组织不在本所范围"`；未传默认 PAT 绑定 org。
+> - **非 owner**（普通成员/团队管理员）PAT 行为零变化：读只看本 org/自己参与；写端点传非自身 org 会报错 `"目标组织不在本所范围"`。
 > - owner 角色被撤销后最多 60s 内（子树 Redis 缓存 TTL）收缩为单 org。
 > - 组织结构目前仅支持扁平一层（顶层律所 + 直接子团队）；多级团队（律所→部门→小组）递归展开为二期，不在本期支持范围。
-> - 该能力由服务端配置开关控制，PAT_TOKEN / API_BASE_URL 等客户端配置不变。
+> - 跨子团队 host/assit 改派未开放（update 不暴露 host/assit 字段）。
 
 ---
 
@@ -197,6 +199,8 @@ Scope: `cases.write` | **高危操作，需二次确认**
 
 V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符串，非数字 id 也非 hashid）。
 
+> **律所拥有者可跨子团队编辑**：owner 的 PAT 可 PATCH 全所（顶层律所 + 直接子团队 org）任意案件；编辑不改归属（保留案件自身 org_id）。非 owner 只能编辑本 org 且自己参与的案件。
+
 **参数**（仅以下字段可更新，传入其它字段会被静默忽略）:
 
 | 参数 | 类型 | 必填 | 说明 |
@@ -223,6 +227,8 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 Scope: `cases.write`
 
 创建新案件。走**直接 POST + enums 引导**范式（不走 create-form 两步流程）。创建前应先调用 `GET /enums` 获取枚举字典（取 `case_type` 案件类型、`case_unit_type` 受理单位类型等），并向用户展示人类可读的确认信息后再提交。
+
+> **律所拥有者可跨子团队建案**：owner 的 PAT 传可选请求参数 `org_id`（hashid）可把新案件归属到本所内任意子团队（案件与主办 related_worker 均归属目标 org）；不在全所集合则报错 `"目标组织不在本所范围"`；未传默认归属 PAT 绑定 org。非 owner 传非自身 org 同样报错。
 
 **请求头**:
 
@@ -251,6 +257,7 @@ Content-Type: application/json
 | case_mark | string | 否 | 案件备注 |
 | pr_time | string | 否 | 委托时间 (YYYY-MM-DD)，默认当天 |
 | stage_text | string | 否 | 初始阶段文本 |
+| org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新案件归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 
 **`privyc_data` 子结构**（JSON 数组，序列化为字符串传入）:
 
@@ -340,6 +347,8 @@ Scope: `cases.read`
 Scope: `cases.write`
 
 使用 `multipart/form-data` 上传文件。`file` 字段为必填的文件内容。
+
+> **律所拥有者可跨子团队上传**：owner 的 PAT 可对全所任意案件上传附件（保留案件自身 org_id）。非 owner 只能上传到本 org 且自己参与的案件。
 
 **请求参数** (multipart/form-data):
 
@@ -563,6 +572,7 @@ Scope: `calendar.write`
 | assit | string | 否 | 协办人UID列表，逗号分隔的 hashid（来自 GET /team/members，如 "aB3xKp,mN9wRq"） |
 | allday | int | 否 | 是否全天: 0=否, 1=是 |
 | remind_time | string | 否 | 提醒时间 |
+| org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新日程归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 
 **响应**: 返回创建的日程数据（含自动生成的 rcode）。
 
@@ -571,6 +581,8 @@ Scope: `calendar.write`
 Scope: `calendar.write`
 
 **这是日程和办案记录的统一更新入口**，支持更新所有字段。`PATCH /records/{id}` 已废弃，所有更新操作统一使用此端点。
+
+> **律所拥有者可跨子团队编辑**：owner 的 PAT 可更新全所任意日程/记录（保留记录自身 org_id）；成员校验按记录自身 org。非 owner 只能更新本 org 且自己参与的记录。
 
 **参数**:
 
@@ -689,6 +701,8 @@ Scope: `clients.read`
 
 Scope: `clients.write`
 
+> **律所拥有者可跨子团队编辑**：owner 的 PAT 可 PATCH 全所任意客户（保留客户自身 org_id）。非 owner 只能编辑本 org 且自己参与的客户。
+
 **参数**:
 
 | 参数 | 类型 | 必填 | 说明 |
@@ -782,6 +796,7 @@ Scope: `clients.write`
 | custom_fields | string | 否 | 自定义字段 JSON `{"{id}":"value"}` |
 | custom_tag | string/array | 否 | 分类标签 |
 | clcontact_data | string | 否 | 联系人 JSON 数组 `[{"name":"xxx","mobile":"xxx"}]` |
+| org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新客户归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 
 **响应 data 字段**:
 
@@ -915,6 +930,8 @@ Scope: `projects.read`
 
 Scope: `projects.write`
 
+> **律所拥有者可跨子团队编辑**：owner 的 PAT 可 PATCH 全所任意项目（保留项目自身 org_id）。非 owner 只能编辑本 org 且自己参与的项目。
+
 **参数**:
 
 | 参数 | 类型 | 必填 | 说明 |
@@ -1014,6 +1031,7 @@ Scope: `projects.write`
 | clcontact_data | string | 否 | 联系人 JSON 数组 |
 | charge_data | string | 否 | 收费配置 JSON 数组 |
 | receive_data | string | 否 | 应收款 JSON 数组 |
+| org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新项目归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 
 **响应 data 字段**:
 
@@ -1271,6 +1289,8 @@ Scope: `finance.read`
 
 Scope: `finance.write`
 
+> **注意**：该端点目前**不跨子团队**——按记录父级 receivable 的 org_id 与 PAT 主 org_id 等值校验。律所拥有者也只能更新本 org（PAT 绑定 org）下的收款记录；跨子团队编辑为二期。
+
 **参数**:
 
 | 参数 | 类型 | 必填 | 说明 |
@@ -1377,7 +1397,7 @@ Scope: `contracts.read`
 **数据权限**：
 - **普通员工**：返回自己跟进的客户或项目关联的合同（通过 RelatedWorker）
 - **管理员**：返回组织下所有合同；支持 `follow_uid` 指定跟进人筛选
-- **律所拥有者（顶层律所 org + OWNER 角色，需服务端开启 `pat.firm_scope_enabled`）**：返回范围展开为「顶层律所 + 所有直接子团队 org」下的全部合同（扁平一层）；跨子团队合同的客户/项目姓名解析仍遵循 CM-1（按 `member_role.org_id` 维度过滤）。详见「认证与通用规范 > 数据可见范围」。
+- **律所拥有者（顶层律所 org + OWNER 角色，全所范围始终开启）**：返回范围展开为「顶层律所 + 所有直接子团队 org」下的全部合同（扁平一层）；跨子团队合同的客户/项目姓名解析仍遵循 CM-1（按 `member_role.org_id` 维度过滤）。详见「认证与通用规范 > 数据可见范围」。
 
 **参数**:
 
@@ -1488,8 +1508,9 @@ Scope: `contracts.write`
 | status | int | 否 | 合作状态: 1=未执行, 2=履行中, 3=已终止 |
 | is_extend | int | 否 | 是否自动延期 |
 | extend_at | string | 否 | 自动延期期限 |
+| org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新合同归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 
-**归属校验**：普通员工只能关联自己跟进的客户/项目，管理员只能关联本组织的客户/项目。
+**归属校验**：普通员工只能关联自己跟进的客户/项目，管理员只能关联本组织的客户/项目。律所拥有者可关联全所内任意子团队的客户/项目。
 
 **示例请求**:
 
@@ -1528,7 +1549,7 @@ Scope: `contracts.write`
 
 更新指定合同的部分字段。路径参数使用合同 `code`（非 id）。
 
-**数据权限**：普通员工只能更新自己跟进的客户/项目关联的合同，管理员可更新组织下所有合同。
+**数据权限**：普通员工只能更新自己跟进的客户/项目关联的合同，管理员可更新组织下所有合同。**律所拥有者可跨子团队编辑**全所任意合同（保留合同自身 org_id；变更 cl_id/pr_id 时新客户/项目必须 ∈ 全所集合）。
 
 **请求参数**（均可选，支持部分更新）:
 
