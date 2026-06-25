@@ -145,6 +145,7 @@ Scope: `cases.read`
 | stage_text | string | 当前阶段文本 |
 | degree | int | 等级 (0=次要, 1=一般, 2=重要) |
 | created_at | string | 创建时间 |
+| org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
 
 ### GET /cases/{code} - 案件详情
 
@@ -192,6 +193,7 @@ Scope: `cases.read`
 | link_pr | string | 关联项目 ID（hashid，可为 null） |
 | created_at | string | 创建时间 |
 | updated_at | string | 更新时间 |
+| org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
 
 ### PATCH /cases/{code} - 更新案件
 
@@ -574,6 +576,8 @@ Scope: `calendar.write`
 | remind_time | string | 否 | 提醒时间 |
 | org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新日程归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 
+> **律所拥有者跨子团队关联案件（type=1）**：owner 关联全所内任意子团队的案件时**无需传 `org_id`**，后端会自动把新日程归属到案件所在子团队（待办归属跟随案件）；协办人(assit)校验按案件自身 org（属于案件所在子团队才合法）。非 owner 仍按原严格校验——关联案件必须 ∈ 自身 org，否则报「关联案件不存在或不属于当前组织」。
+
 **响应**: 返回创建的日程数据（含自动生成的 rcode）。
 
 ### PUT /calendar/{id} - 更新日程/记录
@@ -583,6 +587,8 @@ Scope: `calendar.write`
 **这是日程和办案记录的统一更新入口**，支持更新所有字段。`PATCH /records/{id}` 已废弃，所有更新操作统一使用此端点。
 
 > **律所拥有者可跨子团队编辑**：owner 的 PAT 可更新全所任意日程/记录（保留记录自身 org_id）；成员校验按记录自身 org。非 owner 只能更新本 org 且自己参与的记录。
+>
+> **跨子团队改关联案件（type=1）**：owner 通过 `linkid`+`type:1` 把记录改关联到全所内任意子团队的案件时，记录自身 org_id **保持不变**（不跟随新案件），但后端允许跨子团队建立关联。非 owner 改关联案件仍按原严格校验（目标案件必须 ∈ 记录自身 org）。
 
 **参数**:
 
