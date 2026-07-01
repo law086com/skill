@@ -23,8 +23,16 @@ description: 案件云(law086) AI集成。让律师通过自然语言操作案�
   - **编辑端点**（PATCH/PUT/上传）：可跨子团队编辑/上传全所任意记录（保留记录自身 org_id，编辑不改归属）。
   - **新建端点**（`POST /cases`、`/clients`、`/projects`、`/calendar`、`/contracts`）：支持可选请求参数 `org_id`（hashid）把新记录归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。
   - 非 owner 的 PAT 行为零变化（写端点传非自身 org 会报错「目标组织不在本所范围」）。
-  - 组织结构目前仅支持扁平一层，多级团队递归为二期；跨子团队 host/assit 改派未开放（指案件层面主办/协办律师的改派，需到 OA 网页端）。
+  - 组织结构目前仅支持扁平一层，多级团队递归为二期；跨子团队 host/assit 改派未开放（指**案件层面**主办/协办律师的改派，需到 OA 网页端；**待办层面** owner 已支持创建时指定主办人，见下方"主办人指派")。
   - **日程/待办跨子团队关联（owner 专属）**：owner 给**子团队案件**推送待办/办案记录（`POST /calendar` type=1，或 `PUT /calendar/{id}` 改关联案件）时，**可不传 `org_id`**，后端会自动把待办归属到案件所在子团队（`POST`）；`PUT` 改关联案件时记录自身 org 不变，但允许关联到全所任意子团队案件。协办人(assit)校验按**案件自身 org**（属于案件所在子团队才合法）。非 owner 维持原严格校验（关联案件必须 ∈ 自身 org），行为不变。
+  - **主办人指派（owner 专属）**：律所拥有者通过 `POST /calendar` 推送待办/办案记录时，可指定**主办人**（`huser`），让被指派的员工成为待办主办并能在「我的待办」看到。主办人确定优先级：
+    1. 传了 `huser`（hashid，来自 `GET /team/members`）→ 解码并校验属于目标 org 后使用
+    2. 未传 `huser` 但传了 `assit` → `huser` = `assit` 解码后的第一个员工
+    3. 都没传 → 回落调用者本人（`add_uid` 始终 = 调用者，记录"谁派发的"）
+    - **非 owner**：忽略传入的 `huser`，主办人恒为调用者本人（即使传了 `huser` 也会被丢弃）
+    - **个人空间**（`org_id=0`）：主办人恒为自己，不允许指定他人
+    - **派活推荐用 `huser` 精确指定主办**（与 `PUT /calendar/{id}` 行为一致）；`assit` 回归"协办"本职。owner 派活后**不**把 owner 加入 `assit`（owner 靠全所视图查看）
+    - 同时传 `huser` 和 `assit` 时，`huser` 参数优先；`assit` 多人时取第一个作为兜底主办
 
 ## 更新 Skill
 
@@ -77,7 +85,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
 | GET | /cases/{code}/files/{fileId}/url | 获取文件访问链接 |
 | GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选） |
-| POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: assit 协办人UID列表） |
+| POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: huser 主办人UID仅owner、assit 协办人UID列表） |
 | PUT | /calendar/{id} | 更新日程/记录（状态、人员、时间、阶段等，统一更新入口） |
 | GET | /team/members | 团队成员列表（个人空间不可用） |
 | GET | /clients | 客户列表（keyword 搜索） |
@@ -336,6 +344,8 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "创建明天下午2点的日程" | 创建日程 | `POST /calendar '{title,htime,endtime,type:0}'` |
 | "明天约小康米开会" | 关联客户日程 | 先 `GET "/clients?keyword=小康米"` → `POST /calendar '{...,linkid:id,type:3}'` |
 | "明天和同事一起开庭" | 带协办人日程 | 先 `GET /team/members` 获取 UID → `POST /calendar '{...,assit:"uid1,uid2"}'` |
+| "把这件事派给张三负责" / "让张三主办明天的开庭" | owner 派活（指定主办） | 先 `GET /team/members` 取张三 UID → `POST /calendar '{...,huser:"张三uid"}'`（owner 专属，详见「主办人指派规则」） |
+| "张三主办、李四协办这个待办" | owner 派活（主办+协办） | 先 `GET /team/members` 取 UID → `POST /calendar '{...,huser:"张三uid",assit:"李四uid"}'` |
 | "帮小米案加开庭日程" | 关联案件日程 | 先 `GET "/cases?keyword=小米"` → `POST /calendar '{...,linkid:id,type:1}'` |
 | "记录一下跟华为的沟通" | 客户联系记录 | 先 `GET "/clients?keyword=华为"` → `POST /calendar '{title:"与华为沟通",...,type:3,linkid:client_id}'` |
 | "给XX项目添加工作记录" | 项目工作记录 | 先 `GET "/projects?keyword=XX"` → `POST /calendar '{...,type:2,linkid:project_id}'` |

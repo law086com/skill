@@ -75,7 +75,7 @@ cd ~/.claude/skills/law086/ && git pull
 |------|-------|------|
 | Dashboard | dashboard.read | 每日概览（日程、待办、案件动态） |
 | Cases | cases.read / cases.write | 案件列表、详情、阶段、办案记录、更新案件、附件管理 |
-| Calendar | calendar.read / calendar.write | 日程查询（个人/团队）、创建、更新 |
+| Calendar | calendar.read / calendar.write | 日程查询（个人/团队）、创建、更新。律所拥有者创建日程可指定主办人（`huser`，用于"派活"场景） |
 | Clients | clients.read / clients.write | 客户列表、详情、联系人、更新客户 |
 | Records | records.read / records.write | 独立记录查看、更新（标记已办等） |
 | Projects | projects.read / projects.write | 项目列表、详情、更新 |
@@ -127,7 +127,7 @@ python3 scripts/api.py PATCH /records/abc123 '{"hstatus":1}'
 > - **非 owner**（普通成员/团队管理员）PAT 行为**零变化**：读只看本 org/自己参与；写端点传非自身 org 会报「目标组织不在本所范围」。
 > - owner 角色被撤销后最多 60s 内（子树缓存 TTL）收缩为单 org。
 > - 组织结构目前仅支持扁平一层；多级团队（律所→部门→小组）的递归展开为二期。
-> - 跨子团队 host/assit 改派未开放（update 不暴露 host/assit 字段）。
+> - 跨子团队 host/assit 改派未开放（指**案件层面**主办/协办律师改派，update 不暴露 host/assit 字段；**待办层面** owner 通过 `POST /calendar` 创建日程时已支持指定主办人 `huser`，详见 SKILL.md「主办人指派」）。
 
 ## 技术栈
 
