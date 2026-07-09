@@ -76,7 +76,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /dashboard | 每日概览（今日日程、案件动态、待办） |
 | GET | /search?keyword= | 统一搜索（跨案件+客户+项目） |
 | GET | /enums | 枚举数据字典（案件类型、状态等） |
-| GET | /cases | 案件列表（keyword/g_status/type 筛选） |
+| GET | /cases | 案件列表（keyword/g_status/type 筛选；分页接口，只取首页，禁止全量翻页） |
 | GET | /cases/{code} | 案件详情（含当事人、阶段、财务） |
 | POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums） |
 | PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/current_stage_id/anyou/unit_name+unit_type/stage_text）⚠️ unit_name 与 unit_type 须同时提供 |
@@ -84,17 +84,17 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | POST | /cases/{code}/files | 上传文件到案件（multipart/form-data） |
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
 | GET | /cases/{code}/files/{fileId}/url | 获取文件访问链接 |
-| GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选） |
+| GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选；分页接口，只取首页） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: huser 主办人UID仅owner、assit 协办人UID列表） |
 | PUT | /calendar/{id} | 更新日程/记录（状态、人员、时间、阶段等，统一更新入口） |
 | GET | /team/members | 团队成员列表（个人空间不可用） |
-| GET | /clients | 客户列表（keyword 搜索） |
+| GET | /clients | 客户列表（keyword 搜索；分页接口，只取首页） |
 | GET | /clients/{code} | 客户详情（含关联案件） |
 | GET | /clients/create-form | 获取客户创建表单 schema |
 | POST | /clients | 创建客户 |
 | PATCH | /clients/{code} | 更新客户 |
 | GET | /clients/{code}/contacts | 客户联系人 |
-| GET | /projects | 项目列表 |
+| GET | /projects | 项目列表（分页接口，只取首页） |
 | GET | /projects/{code} | 项目详情（含团队、关联客户） |
 | GET | /projects/create-form | 获取项目创建表单 schema |
 | POST | /projects | 创建项目 |
@@ -112,6 +112,18 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | PATCH | /contracts/{code} | 更新合同（按 code 标识） |
 
 ## 关键概念
+
+### 列表分页规则（重要）
+
+案件 / 客户 / 项目 / 日程列表均为**分页接口**（默认每页 20 条，返回含 `total`/`last_page`/`next_page_url`）。律师与 AI 交互**永远只展示少量数据**，因此：
+
+1. **列表查询只取第一页**（page=1），靠 `keyword`/`g_status`/`type` 等筛选把范围缩到用户关心的几条。
+2. **禁止为「列出全部」「统计总数」「逐条本地匹配」而翻完所有分页**——用户看不完，纯属浪费请求（某律师 1800+ 案件被翻 90+ 页就是典型反例）。
+3. 用户想要更多 → 引导其补充筛选条件（关键词、状态、类型、时间），**不要翻页**。
+4. 需要判断「命中几条」用响应里的 `total` 字段，**不要靠翻页计数**。
+5. 统计数量（如「我有多少在办案件」）用 `GET /dashboard` 的聚合统计，不要全量拉取后本地 count。
+
+> **注意区分「分页接口」与「全量接口」**：财务的 `GET /finance/receivables`（应收款）、`GET /finance/receiverecord`（收款记录）和合同 `GET /contracts` 是**全量返回**（不分页，一次性返回全部命中数据，靠参数筛选范围）。本节约束**只针对分页接口**（cases/clients/projects/calendar，以及 `GET /finance` 财务记录列表），与全量接口设计不矛盾——全量接口本身就没有分页可翻。
 
 ### 日程与办案记录的关系
 
@@ -155,6 +167,8 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 ### 重名案件消歧（重要）
 
 当 `GET /cases?keyword=X` 命中 **≥2 条**时，**必须先列出候选让用户确认选择**，取定后再 `POST /calendar` 或继续后续操作，禁止凭猜测直接关联。命中 1 条可直接进行（仍展示一句确认）。
+
+> **命中数看 `total`、候选只取首页**：判断搜到几条案件，直接读响应里的 `total` 字段，**不要翻页去数**；候选列表只看第一页的数据即可。若首页未出现目标案件，应让用户补充更精确的关键词，而不是继续翻页。详见「列表分页规则」。
 
 **展示格式**（利用响应中的 `org_name` 字段消歧，仅顶层律所 owner 的响应才含此字段）：
 
@@ -330,9 +344,9 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 
 | 用户说 | 推断意图 | 脚本调用 |
 |--------|----------|----------|
-| "查询我的案件" | 案件列表 | `GET /cases` |
+| "查询我的案件" | 案件列表 | `GET /cases`（只取首页 20 条，引导用户给关键词/状态/类型缩小范围；禁止全量翻页。统计数量改用 `GET /dashboard`） |
 | "张三案件进度" | 搜索案件 | `GET "/cases?keyword=张三"` |
-| "在办案件" | 筛选状态 | `GET "/cases?g_status=1"` |
+| "在办案件" | 筛选状态 | `GET "/cases?g_status=1"`（只取首页，命中数看 total） |
 | "创建案件：张三诉李四，民事借款纠纷" | 创建案件 | `GET /enums` → 收集 type/当事人 → 确认 → `POST /cases '{"type":1,"privyc_data":"[{\"name\":\"张三\",\"type\":1},{\"name\":\"李四\",\"type\":2}]","anyou":"借款纠纷"}'` |
 | "新建一个民事案件，原告王五，被告赵六" | 创建案件（原被告） | `GET /enums` → 确认 → `POST /cases '{"type":1,"privyc_data":"[{\"name\":\"王五\",\"type\":1},{\"name\":\"赵六\",\"type\":2}]"}'` |
 | "登记一个刑事案件" | 创建案件（仅一方） | `GET /enums` → 收集当事人 → 确认 → `POST /cases '{"type":4,"privyc_data":"[{\"name\":\"某某\",\"type\":1}]"}'` |

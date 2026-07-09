@@ -70,6 +70,17 @@ curl -s -X POST "{BASE}/calendar" -H "Authorization: Bearer {TOKEN}" \
 | per_page | 每页条数 |
 | total | 总条数 |
 | last_page | 末页页码 |
+| next_page_url | 下一页 URL（最后一页为 null） |
+
+> **AI 使用约束（重要）**：以下列表端点为**分页接口**——`GET /cases`、`GET /clients`、`GET /projects`、`GET /calendar`、`GET /finance`、`GET /cases/{code}/files`。律师与 AI 交互时永远只看几条数据，全量翻页毫无必要，请严格遵守：
+>
+> 1. **列表查询只取第一页**（page=1，默认 limit=20），靠 `keyword`/`g_status`/`type`/日期等筛选把范围缩到用户关心的几条。
+> 2. **禁止为「列出全部」「统计总数」「逐条本地匹配」而翻完所有分页**——用户看不完，纯属浪费请求（某律师 1800+ 案件被翻 90+ 页是典型反例）。
+> 3. 用户想要更多 → 引导其补充筛选条件（关键词、状态、类型、时间），**不要翻页**。
+> 4. 需要判断「命中几条」用响应里的 `total` 字段，**不要靠翻页计数**。
+> 5. 统计数量（如「我有多少在办案件」）用 `GET /dashboard` 的聚合统计，不要全量拉取后本地 count。
+>
+> **注意区分「分页接口」与「全量接口」**：财务的 `GET /finance/receivables`、`GET /finance/receiverecord` 以及 `GET /contracts` 是**全量返回**（不分页，设计上一次性返回全部命中数据，靠参数筛选范围）。上述「禁止翻页」约束**只针对分页接口**，与这两个全量接口的设计不矛盾——全量接口本身就没有分页可翻。
 
 ### 数据可见范围
 
@@ -146,6 +157,8 @@ Scope: `cases.read`
 | degree | int | 等级 (0=次要, 1=一般, 2=重要) |
 | created_at | string | 创建时间 |
 | org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
+
+> **AI 使用建议**：本端点是**分页接口**。只取第一页（page=1，limit 默认 20），用 `keyword`/`g_status`/`type` 把结果缩到几条。**禁止为「列出全部案件」「统计总数」而翻完所有分页**——用户看不完。判断命中数用响应 `total`；统计数量用 `GET /dashboard`。详见「认证与通用规范 > 分页约定」。
 
 ### GET /cases/{code} - 案件详情
 
@@ -553,6 +566,8 @@ GET /calendar?type=3&linkid={client_hashid}
 | created_at | string | 创建时间 |
 
 > **展示建议**: 优先使用 `htime_text`/`endtime_text` 显示时间，`huser_text`/`assit_text` 显示负责人，`type_text`+`case_name` 显示关联信息。这些字段已由后端处理好，无需二次转换。
+>
+> **AI 使用建议**：本端点是**分页接口**，只取首页、用 `start_date`/`end_date`/`type`+`linkid`/`hstatus`/`keyword` 缩小范围，禁止全量翻页。判断命中数用响应 `total`。详见「认证与通用规范 > 分页约定」。
 
 ### POST /calendar - 创建日程
 
@@ -669,6 +684,8 @@ Scope: `clients.read`
 | industry | string | 行业 ID（逗号分隔） |
 | org_id | int | 组织 ID |
 | created_at | string | 创建时间 |
+
+> **AI 使用建议**：本端点是**分页接口**，只取首页、用 `keyword`/`mark`/`type`/`degree` 缩小范围，禁止全量翻页。判断命中数用响应 `total`。详见「认证与通用规范 > 分页约定」。
 
 ### GET /clients/{code} - 客户详情
 
@@ -915,6 +932,8 @@ Scope: `projects.read`
 | client_name | string | 关联客户名称 |
 | host_text | string | 负责人姓名 |
 | created_at | string | 创建时间 |
+
+> **AI 使用建议**：本端点是**分页接口**，只取首页、用 `keyword`/`pr_status`/`pr_type`/`degree` 缩小范围，禁止全量翻页。判断命中数用响应 `total`。详见「认证与通用规范 > 分页约定」。
 
 ### GET /projects/{code} - 项目详情
 
