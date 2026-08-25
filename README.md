@@ -77,7 +77,7 @@ cd ~/.claude/skills/law086/ && git pull
 |------|-------|------|
 | Dashboard | dashboard.read | 每日概览（日程、待办、案件动态） |
 | Cases | cases.read / cases.write | 案件列表、详情、阶段、办案记录、更新案件、附件管理 |
-| Calendar | calendar.read / calendar.write | 日程查询（个人/团队）、创建、更新。律所拥有者创建日程可指定主办人（`huser`，用于"派活"场景） |
+| Calendar | calendar.read / calendar.write | 日程查询（个人/团队）、创建、更新。团队/律所管理员或拥有者创建日程可指定主办人（`huser`，用于"派活"场景） |
 | Clients | clients.read / clients.write | 客户列表、详情、联系人、更新客户 |
 | Records | records.read / records.write | 独立记录查看、更新（标记已办等） |
 | Projects | projects.read / projects.write | 项目列表、详情、更新 |
@@ -118,19 +118,19 @@ python3 scripts/api.py PATCH /records/abc123 '{"hstatus":1}'
 | 空间类型 | 角色 | 可见范围 |
 |----------|------|---------|
 | 个人空间 | 本人 | 全部个人数据 |
-| 团队/律所 | 管理员/拥有者 | 全部组织数据（团队拥有者还可修改本组织成员的日程） |
+| 团队/律所 | 管理员/拥有者 | 全部组织数据（团队拥有者/管理员还可修改本组织成员的日程） |
 | 团队/律所 | 普通成员 | 只能看自己参与的数据 |
 | 律所顶层 + 拥有者 | 律所拥有者 | **全所范围**：顶层律所 + 所有直接子团队 org（扁平一层）。读端点全所可见；写端点同样跨所——可编辑/上传全所任意记录，新建（cases/clients/projects/calendar/contracts）支持可选 `org_id` 参数指定归属子团队 |
 
 > **律所拥有者全所范围（始终开启，无灰度开关）**：律所拥有者（顶层律所 org + OWNER 角色）的 PAT，可见范围自动展开为「顶层律所 + 所有直接子团队 org」。
 > - **读端点**（GET 类）：全所可见（cases/clients/projects/finance/dashboard/search/calendar/team/records/contracts 等）。
-> - **团队/律所管理员或拥有者**：本 org 下全部数据；其中团队拥有者可修改本 org 团队成员的日程（`PUT /calendar/{id}` 不限于本人主办/协办）。
+> - **团队/律所管理员或拥有者**：本 org 下全部数据；其中团队拥有者/管理员可修改本 org 团队成员的日程（`PUT /calendar/{id}` 不限于本人主办/协办）。
 > - **编辑端点**（PATCH/PUT/上传）：owner 可跨子团队编辑/上传全所任意记录；编辑不改归属（保留记录自身 org_id）；成员校验用记录自身 org。
 > - **新建端点**（`POST /cases`、`/clients`、`/projects`、`/calendar`、`/contracts`）：支持可选请求参数 `org_id`（hashid），owner 可指定新记录归属到本所内任意子团队；解码后校验 ∈ 全所集合，不在则报错「目标组织不在本所范围」；未传默认归属 PAT 绑定 org。
 > - **普通成员**（非管理员/拥有者、非律所顶层 owner）PAT 行为**零变化**：读只看本 org/自己参与；写端点传非自身 org 会报「目标组织不在本所范围」。
 > - owner 角色被撤销后最多 60s 内（子树缓存 TTL）收缩为单 org。
 > - 组织结构目前仅支持扁平一层；多级团队（律所→部门→小组）的递归展开为二期。
-> - 跨子团队 host/assit 改派未开放（指**案件层面**主办/协办律师改派，update 不暴露 host/assit 字段；**待办层面** owner 通过 `POST /calendar` 创建日程时已支持指定主办人 `huser`，详见 SKILL.md「主办人指派」）。
+> - 跨子团队 host/assit 改派未开放（指**案件层面**主办/协办律师改派，update 不暴露 host/assit 字段；**待办层面** 团队/律所管理员或拥有者通过 `POST /calendar` 创建日程时已支持指定主办人 `huser`，详见 SKILL.md「主办人指派」）。
 
 ## 技术栈
 
