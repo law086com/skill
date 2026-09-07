@@ -1,7 +1,7 @@
 ---
 name: law086
 version: 2.0.0
-display_name: 案件管理助手/ 律师案件/日程/团队管理
+display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
 description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
 description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
