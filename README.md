@@ -76,7 +76,7 @@ cd ~/.claude/skills/law086/ && git pull
 | 模块 | Scope | 说明 |
 |------|-------|------|
 | Dashboard | dashboard.read | 每日概览（日程、待办、案件动态） |
-| Cases | cases.read / cases.write | 案件列表、详情、阶段、办案记录、更新案件、附件管理 |
+| Cases | cases.read / cases.write / cases.close / cases.archive | 案件列表、详情、阶段、办案记录、更新案件、附件管理；结案与归档（含取消，独立 scope，律所开启对应审批时不可用） |
 | Calendar | calendar.read / calendar.write | 日程查询（个人/团队）、创建、更新。团队/律所管理员或拥有者创建日程可指定主办人（`huser`，用于"派活"场景） |
 | Clients | clients.read / clients.write | 客户列表、详情、联系人、更新客户 |
 | Records | records.read / records.write | 独立记录查看、更新（标记已办等） |

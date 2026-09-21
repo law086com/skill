@@ -1,11 +1,11 @@
 ---
 name: law086
-version: 2.2.0
+version: 2.3.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
-description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
-description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, read and write case custom fields, manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"自定义字段"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
+description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"自定义字段"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -86,6 +86,8 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/create-form | 案件自定义字段 schema（含字段键/类型/选项/必填；写自定义字段前先调） |
 | POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums；可选 custom_fields/custom_tag） |
 | PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/current_stage_id/anyou/unit_name+unit_type/stage_text/custom_fields/custom_tag）⚠️ unit_name 与 unit_type 须同时提供 |
+| POST | /cases/{code}/close | 案件结案 / 取消结案（可选 j_time/ja_status/suc_amount；**显式传 null 即取消结案**）⚠️ 律所开启结案审批时不可用 |
+| POST | /cases/{code}/archive | 案件归档 / 取消归档（可选 g_time/g_user/g_address；**显式传 null 即取消归档，三字段一并清空**）⚠️ 律所开启归档审批时不可用 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
 | POST | /cases/{code}/files | 上传文件到案件（multipart/form-data） |
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
@@ -358,6 +360,12 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 
 - **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）、`current_stage_id`（切换当前阶段）、`unit_name`+`unit_type`（变更受理单位）→ 均需先向用户确认
 - **POST /cases** 创建案件属写操作 → 创建前必须向用户展示案件名、当事人、类型等人类可读信息并确认
+- **POST /cases/{code}/close**（结案）、**POST /cases/{code}/archive**（归档）→ 属案件状态变更，调用前必须向用户确认案件（案件名/案号）与日期
+- **取消结案 / 取消归档（即显式传 `j_time: null` 或 `g_time: null`）→ 必须二次确认**。这是撤销性操作，一旦误传空值就会把已结案的案件退回在办；用户表述含糊时先问清是「要结案」还是「要取消结案」
+
+> ⚠️ **传参禁忌**：结案/归档端点的参数是**三态**的 —— 不传 = 不动该字段，传 `null`/`""` = **清空该字段**。只想改结案状态或胜诉金额时，**不要传 `j_time` 键**，否则等于取消结案。不要用空字符串"占位"。
+>
+> ⚠️ **审批门控**：案件所属律所若开启了结案/归档审批，这两个端点会被拒绝。此时**不要重试、不要改用其它端点绕过**，直接把后端返回的中文提示转述给用户，引导其到 OA 网页端提交审批申请。
 
 ## 不支持的操作
 
@@ -366,6 +374,16 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 > 该操作暂不支持在 AI 助手中完成，请在 OA 网页端或 APP 中进行相应操作。
 
 不要尝试调用不存在的端点，也不要模拟删除行为。
+
+> **注意区分**：「取消结案 / 取消归档」**不属于**删除类操作，它们**有**对应端点（`POST /cases/{code}/close` 传 `j_time: null`、`POST /cases/{code}/archive` 传 `g_time: null`）。删除类指的是删除案件/日程/客户/项目本身。
+
+### 律所开启审批时的替代路径
+
+若律所已开启**结案审批**或**归档审批**，对应端点会被后端拒绝（含明确中文报错）。此时**没有 AI 侧替代端点**，正确做法是把报错转述给用户：
+
+> 该律所已开启结案审批（或归档审批），此类操作需在案件云 OA 网页端提交申请并走审批流程，AI 助手无法代为完成。
+
+**禁止**改用 `PATCH /cases/{code}` 或其它端点变相修改结案/归档字段 —— 那些字段不在任何更新白名单内（传了也会被忽略），且属于绕过审批。
 
 ## 使用示例
 
@@ -419,3 +437,8 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "上传文件到XX案" | 上传附件 | 先搜索案件 → `POST /cases/{code}/files` (multipart) |
 | "把文件附加到这条记录" | 关联日程上传 | 获取 record_id → `POST /cases/{code}/files`（带 record_id） |
 | "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |
+| "把XX案件结案" | 结案 | 先确认案件与结案日期 → `POST /cases/{code}/close '{"j_time":"2026-09-21"}'`（需 `cases.close`） |
+| "XX案达成诉求，胜诉金额10万" | 结案+结果 | `POST /cases/{code}/close '{"j_time":"...","ja_status":1,"suc_amount":100000}'` |
+| "取消XX案的结案" | 取消结案 | **先二次确认** → `POST /cases/{code}/close '{"j_time":null}'` |
+| "把XX案件归档" | 归档 | 先确认案件与归档日期 → `POST /cases/{code}/archive '{"g_time":"2026-09-21"}'`（需 `cases.archive`） |
+| "取消归档" | 取消归档 | **先二次确认** → `POST /cases/{code}/archive '{"g_time":null}'`（三字段一并清空） |
