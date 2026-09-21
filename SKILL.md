@@ -1,11 +1,11 @@
 ---
 name: law086
-version: 2.1.0
+version: 2.2.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
-description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
-description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
+description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, read and write case custom fields, manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"自定义字段"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -81,10 +81,11 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /dashboard | 每日概览（今日日程、案件动态、待办） |
 | GET | /search?keyword= | 统一搜索（跨案件+客户+项目） |
 | GET | /enums | 枚举数据字典（案件类型、状态等） |
-| GET | /cases | 案件列表（keyword/g_status/type 筛选；分页接口，只取首页，禁止全量翻页） |
-| GET | /cases/{code} | 案件详情（含当事人、阶段、财务） |
-| POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums） |
-| PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/current_stage_id/anyou/unit_name+unit_type/stage_text）⚠️ unit_name 与 unit_type 须同时提供 |
+| GET | /cases | 案件列表（keyword/g_status/type 筛选；分页接口，只取首页，禁止全量翻页；每项含 custom_fields 自定义字段值） |
+| GET | /cases/{code} | 案件详情（含当事人、阶段、财务、自定义字段 custom_fields/custom_tag） |
+| GET | /cases/create-form | 案件自定义字段 schema（含字段键/类型/选项/必填；写自定义字段前先调） |
+| POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums；可选 custom_fields/custom_tag） |
+| PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/current_stage_id/anyou/unit_name+unit_type/stage_text/custom_fields/custom_tag）⚠️ unit_name 与 unit_type 须同时提供 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
 | POST | /cases/{code}/files | 上传文件到案件（multipart/form-data） |
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
@@ -240,7 +241,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 ### 创建流程（案件）
 
-创建案件走**直接 POST + enums 引导**范式（**不走 create-form 两步流程**）。流程：
+创建案件走**直接 POST + enums 引导**范式（案件**基础信息**不走 create-form 两步流程；自定义字段有独立的 `GET /cases/create-form`）。流程：
 
 1. AI 调用 `GET /enums` 获取枚举字典（取 `case_type` 案件类型、`case_unit_type` 受理单位类型等）
 2. AI 收集用户输入：`type`（案件类型 1-5）+ `privyc_data`（当事人，至少一个含 name）+ 其他可选字段
@@ -254,6 +255,25 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 **自动生成（客户端不要传）**：`case_code`、`c_num`（留空按组织序号生成）、案件名（未传 `case_name` 时按"原告名 诉 被告名"拼接，识别不出原被告用"类型+日期"兜底）、主办律师（自动写入 related_worker = PAT 调用者）。
 
 **关键**：当事人原被告关系决定自动生成的案件名拼接，尽量引导用户指明谁是原告/委托方（type=1）、谁是被告/对方（type=2）。
+
+### 案件自定义字段读写
+
+律师可为案件配置自定义字段（如"争议类型""开庭日期"）。读写前**必须先调 `GET /cases/create-form`** 获取当前空间的字段定义（`dynamic_fields`：键 `cusfields_id_{hashid}`、类型、选项、必填）。
+
+**读值**：`GET /cases` / `GET /cases/{code}` 返回 `custom_fields` 数组（每项 = 定义 + `value` 当前值，空值为 `""`）与 `custom_tag`（分类标签数组）。
+
+**写值**：`POST /cases`（创建时）与 `PATCH /cases/{code}`（更新时）传 `custom_fields` / `custom_tag`：
+
+```bash
+# 用 create-form 返回的 key 原样回传（也接受去掉 cusfields_id_ 前缀的裸 hashid）
+python3 scripts/api.py PATCH /cases/ABC123 '{"custom_fields":"{\"cusfields_id_J3GGbB3j\":\"一审\"}","custom_tag":["重点"]}'
+```
+
+**规则**：
+- 值必须是字符串/数字；`multi_select` 用逗号拼接串（如 `"一审,二审"`，不是数组）；`datetime` 用 `YYYY-MM-DD`
+- `select`/`multi_select` 的值必须来自 schema 的 `options`；`required` 字段创建时必须提供且非空，更新时不可传空
+- 部分更新：只传要改的键，未传字段保持原值；非必填字段传 `""` 可清空
+- 校验失败（字段 id 不存在 / 选项外取值 / 日期格式错误）返回中文可读报错，整单失败不落库
 
 ### 合同查询指南
 
@@ -358,6 +378,8 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "新建一个民事案件，原告王五，被告赵六" | 创建案件（原被告） | `GET /enums` → 确认 → `POST /cases '{"type":1,"privyc_data":"[{\"name\":\"王五\",\"type\":1},{\"name\":\"赵六\",\"type\":2}]"}'` |
 | "登记一个刑事案件" | 创建案件（仅一方） | `GET /enums` → 收集当事人 → 确认 → `POST /cases '{"type":4,"privyc_data":"[{\"name\":\"某某\",\"type\":1}]"}'` |
 | "案件ABC123详情" | 案件详情 | `GET /cases/ABC123` |
+| "案件ABC123的自定义字段有哪些/当前值是什么" | 读自定义字段 | `GET /cases/ABC123`（读 `custom_fields` 数组；定义不明先 `GET /cases/create-form`） |
+| "把案件ABC123的争议类型改成一审" | 写自定义字段 | `GET /cases/create-form` 取字段 key → `PATCH /cases/ABC123 '{"custom_fields":"{\"cusfields_id_xxx\":\"一审\"}"}'`（值须来自 options） |
 | "把案件ABC123的受理单位改成海淀法院" | 更新受理单位 | `PATCH /cases/ABC123 '{"unit_name":"海淀法院","unit_type":1}'`（unit_name+unit_type 须同时传） |
 | "给案件ABC123加一个阶段：质证" | 新增当前阶段 | `PATCH /cases/ABC123 '{"stage_text":"质证"}'` |
 | "帮我记录：去法院阅卷" | 添加办案记录 | `POST /calendar '{title,htime,endtime,type:1,linkid:case_id}'` |

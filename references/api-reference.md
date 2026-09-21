@@ -158,6 +158,8 @@ Scope: `cases.read`
 | degree | int | 等级 (0=次要, 1=一般, 2=重要) |
 | created_at | string | 创建时间 |
 | org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
+| custom_fields | array | 案件自定义字段（定义+当前值自描述数组，结构同 GET /cases/{code} 的 `custom_fields`，每项含 `key/name/type/value/options/required`）。未配置字段定义时为 `[]` |
+| custom_tag | array | 案件资源级分类标签（字符串数组，无标签时 `[]`） |
 
 > **AI 使用建议**：本端点是**分页接口**。只取第一页（page=1，limit 默认 20），用 `keyword`/`g_status`/`type` 把结果缩到几条。**禁止为「列出全部案件」「统计总数」而翻完所有分页**——用户看不完。判断命中数用响应 `total`；统计数量用 `GET /dashboard`。详见「认证与通用规范 > 分页约定」。
 
@@ -208,6 +210,69 @@ Scope: `cases.read`
 | created_at | string | 创建时间 |
 | updated_at | string | 更新时间 |
 | org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
+| custom_fields | array | 案件自定义字段当前值（定义+值自描述数组，见下方结构说明）。未配置字段定义时为 `[]` |
+| custom_tag | array | 案件资源级分类标签（字符串数组，无标签时 `[]`） |
+
+**`custom_fields` 数组元素结构**（与 `GET /cases/create-form` 的 `dynamic_fields` 同源，另附当前值）:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| key | string | 字段键，形如 `cusfields_id_{hashid}`（回写时原样使用，见 PATCH /cases 的 `custom_fields` 参数） |
+| name / description | string | 字段中文名 |
+| type | string | 字段类型小写: text / datetime / select / multi_select / textarea / image |
+| required | bool | 是否必填 |
+| options | array | 选项列表 `[{value,label}]`（仅 select / multi_select 且配置了选项时返回） |
+| value | string | 当前值（恒为字符串，空值 `""`；multi_select 为逗号拼接串如 `"一审,二审"`） |
+
+### GET /cases/create-form - 获取案件自定义字段表单 schema
+
+Scope: `cases.write`
+
+返回案件**自定义字段**定义（含字段键、类型、选项、必填、分类标签候选）。案件基础信息仍走 `GET /enums` + 直接 `POST /cases`（不走 create-form 两步流程）；仅当用户要读写**自定义字段**时才需要先调本端点。
+
+**参数**: 无
+
+**响应 data 字段**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| form_schema | object | 表单 schema 定义 |
+| form_schema.sections | array | 表单分区列表（1 个分区：custom 自定义信息） |
+
+**sections 分区结构**:
+
+1. **custom** - 自定义信息
+   - custom_tag (multi_select): 分类标签，options 由字段级标签汇总生成
+   - dynamic_fields: 案件自定义字段定义（动态生成），每项含:
+     - key: `cusfields_id_{hashid}`（提交时作为 `custom_fields` 的键原样回传，也接受去掉前缀的裸 hashid）
+     - type: text / datetime / select / multi_select / textarea / image（小写）
+     - name / description: 字段中文名
+     - required: 是否必填（创建时必填字段必须提供且非空）
+     - options: `[{value,label}]`，仅 select / multi_select 且配置了选项时返回；**值必须从选项中取**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "form_schema": {
+      "sections": [
+        {
+          "name": "custom",
+          "title": "自定义信息",
+          "fields": [
+            {"key": "custom_tag", "type": "multi_select", "description": "分类标签", "required": false, "options": [{"value": "重点", "label": "重点"}]}
+          ],
+          "dynamic_fields": [
+            {"key": "cusfields_id_J3GGbB3j", "type": "select", "description": "争议类型", "name": "争议类型", "required": true, "options": [{"value": "一审", "label": "一审"}, {"value": "二审", "label": "二审"}]}
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+> 个人空间 PAT 只返回本人字段定义；组织空间返回本组织（或案件所属组织）的定义。
 
 ### PATCH /cases/{code} - 更新案件
 
@@ -231,6 +296,16 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 | unit_name | string | 否 | 受理单位名称（最大 128 字）⚠️ **必须与 `unit_type` 同时提供** |
 | unit_type | int | 否 | 受理单位类型: 1=法院, 2=检察院, 3=公安机关, 4=仲裁机构, 5=调解机构, 6=鉴定机构, 7=行政机构 ⚠️ **必须与 `unit_name` 同时提供** |
 | stage_text | string | 否 | 阶段文本（不可传空值，新增或激活该阶段为当前阶段） |
+| custom_fields | string/object | 否 | 自定义字段值 JSON（见下方说明；键支持 `cusfields_id_{hashid}`（create-form 原样回传）或裸 `{hashid}`，两种形态等价） |
+| custom_tag | string/array | 否 | 案件分类标签。数组自动拼接为逗号串；传空串 `""` 显式清空；未传不动 |
+
+**`custom_fields` 写入说明**（POST /cases 与 PATCH /cases/{code} 共用同一契约）:
+
+- 形态：推荐 JSON 字符串（如 `"{\"cusfields_id_J3GGbB3j\":\"一审\"}"`），也接受 JSON 对象。
+- 键：从 `GET /cases/create-form` 的 `dynamic_fields[].key` 原样回传；去掉 `cusfields_id_` 前缀的裸 hashid 也接受。
+- 值：恒为字符串/数字。`multi_select` 为逗号拼接串（如 `"一审,二审"`，不是数组）；`datetime` 为 `YYYY-MM-DD`；`select`/`multi_select` 的值必须来自 schema 的 `options`。
+- 部分更新：只改传入的键，未传字段保持原值；非必填字段可传空串 `""` 清空。
+- 校验：字段 id 不存在 → `"自定义字段id不存在"`；选项外取值 / 必填传空 / 日期格式错误 → 中文可读报错，整单失败不落库。
 
 > **不可更新字段**：`status`、`g_status`（结案/归档）、`host`/`assit`（律师团队）、`fee_type` 等属独立业务流程，需在 OA 网页端操作，Open API 不开放。这些字段即使传入也会被忽略。
 >
@@ -242,7 +317,7 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 
 Scope: `cases.write`
 
-创建新案件。走**直接 POST + enums 引导**范式（不走 create-form 两步流程）。创建前应先调用 `GET /enums` 获取枚举字典（取 `case_type` 案件类型、`case_unit_type` 受理单位类型等），并向用户展示人类可读的确认信息后再提交。
+创建新案件。走**直接 POST + enums 引导**范式（案件基础信息不走 create-form 两步流程）。创建前应先调用 `GET /enums` 获取枚举字典（取 `case_type` 案件类型、`case_unit_type` 受理单位类型等），并向用户展示人类可读的确认信息后再提交。若要写入**自定义字段**，先调 `GET /cases/create-form` 获取字段定义（键/类型/选项/必填），按其 schema 取值。
 
 > **律所拥有者可跨子团队建案**：owner 的 PAT 传可选请求参数 `org_id`（hashid）可把新案件归属到本所内任意子团队（案件与主办 related_worker 均归属目标 org）；不在全所集合则报错 `"目标组织不在本所范围"`；未传默认归属 PAT 绑定 org。非 owner 传非自身 org 同样报错。
 
@@ -274,6 +349,8 @@ Content-Type: application/json
 | pr_time | string | 否 | 委托时间 (YYYY-MM-DD)，默认当天 |
 | stage_text | string | 否 | 初始阶段文本 |
 | org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新案件归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
+| custom_fields | string/object | 否 | 自定义字段值 JSON（契约见 PATCH /cases/{code} 的 `custom_fields` 写入说明；键支持 `cusfields_id_{hashid}` 或裸 hashid）。创建时所有必填字段（schema `required=true`）必须提供且非空 |
+| custom_tag | string/array | 否 | 案件分类标签（数组自动拼接为逗号串） |
 
 **`privyc_data` 子结构**（JSON 数组，序列化为字符串传入）:
 
@@ -318,6 +395,8 @@ Content-Type: application/json
 | 当事人名称不能为空 | `privyc_data` 为空或所有对象 name 均为空 |
 | 案由长度不能超过 64 | `anyou` 超长 |
 | 案号长度不能超过 128 | `anhao` 超长 |
+| 自定义字段id不存在 | `custom_fields` 的键不在当前可用字段定义集（先调 GET /cases/create-form） |
+| 自定义字段「XX」的值无效，只允许：… / 为必填，不能为空 / 日期类型字段错误 | 自定义字段值校验失败（选项外取值 / 必填缺失或传空 / datetime 格式错误），整单失败不落库 |
 
 > 缺少 `cases.write` scope 时返回 `code:"3"`（权限不足）。
 
@@ -1682,6 +1761,7 @@ PATCH /contracts/aBcDeFgH12345678
 - POST /cases (创建案件)
 - PATCH /cases/{id} (替代 PUT)
 - GET /cases/{id}/stages
+- GET /cases/create-form (案件自定义字段 schema)
 - PUT /calendar/{id}
 - DELETE /calendar/{id}
 - GET /clients
@@ -1710,7 +1790,7 @@ PATCH /contracts/aBcDeFgH12345678
 | Scope | 说明 | 涉及端点 |
 |-------|------|----------|
 | cases.read | 查看案件列表、详情、搜索 | GET /cases, GET /cases/{id}, GET /cases/{id}/stages, GET /search |
-| cases.write | 创建、更新案件 | POST /cases, PATCH /cases/{id} |
+| cases.write | 创建、更新案件 | POST /cases, PATCH /cases/{id}, GET /cases/create-form |
 | calendar.read | 查看日程和团队成员 | GET /team/members, GET /calendar |
 | calendar.write | 创建/更新/日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
 | clients.read | 查看客户信息和联系人 | GET /clients, GET /clients/{id}, GET /clients/{id}/contacts |
