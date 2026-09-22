@@ -251,6 +251,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 4. AI 展示人类可读的确认信息（案件类型、当事人列表、案由、审理程序等），等待用户确认
 5. 用户确认后，AI 调用 `POST /cases` 创建
 6. 创建成功后返回 `{ case_code, c_num, id, case_name }`
+7. **若用户录入的是已结案/已归档的案件**：创建后链式补调 `POST /cases/{code}/close`（结案日期、结案状态、胜诉金额）和/或 `POST /cases/{code}/archive`（归档日期、归档人、保管地）。`POST /cases` 本身**不能**带结案/归档日期（新建的案件一律是"在办"），漏掉这一步案件会永远显示"在办"。若 close/archive 返回"该律所已开启结案/归档审批"的报错，告知用户需到 OA 端提交审批申请（需 `cases.close` / `cases.archive` 权限）
 
 **必填**：`type`（1-5 整数）+ `privyc_data`（JSON 字符串，至少一个对象含非空 name）。
 
@@ -438,6 +439,7 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "把文件附加到这条记录" | 关联日程上传 | 获取 record_id → `POST /cases/{code}/files`（带 record_id） |
 | "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |
 | "把XX案件结案" | 结案 | 先确认案件与结案日期 → `POST /cases/{code}/close '{"j_time":"2026-09-21"}'`（需 `cases.close`） |
+| "录入一个已结案的案件" | 创建+结案 | 先 `POST /cases` 创建 → 再 `POST /cases/{code}/close '{"j_time":"...","ja_status":...}'` 补结案（**漏第二步案件会停在"在办"**） |
 | "XX案达成诉求，胜诉金额10万" | 结案+结果 | `POST /cases/{code}/close '{"j_time":"...","ja_status":1,"suc_amount":100000}'` |
 | "取消XX案的结案" | 取消结案 | **先二次确认** → `POST /cases/{code}/close '{"j_time":null}'` |
 | "把XX案件归档" | 归档 | 先确认案件与归档日期 → `POST /cases/{code}/archive '{"g_time":"2026-09-21"}'`（需 `cases.archive`） |

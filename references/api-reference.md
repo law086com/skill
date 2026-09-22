@@ -323,6 +323,8 @@ Scope: `cases.write`
 
 > **律所拥有者可跨子团队建案**：owner 的 PAT 传可选请求参数 `org_id`（hashid）可把新案件归属到本所内任意子团队（案件与主办 related_worker 均归属目标 org）；不在全所集合则报错 `"目标组织不在本所范围"`；未传默认归属 PAT 绑定 org。非 owner 传非自身 org 同样报错。
 
+> **创建的案件一律是「在办」**：本端点不支持传结案/归档相关字段（`j_time`/`ja_status`/`g_time`/`g_user`/`g_address` 均不在参数内，传入无效）。若要录入**已结案/已归档**的案件，须在创建后链式补调 `POST /cases/{code}/close` 与（或）`POST /cases/{code}/archive` 写入对应日期——否则案件状态会一直显示「在办」。
+
 **请求头**:
 
 ```
