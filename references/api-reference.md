@@ -212,6 +212,23 @@ Scope: `cases.read`
 | org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
 | custom_fields | array | 案件自定义字段当前值（定义+值自描述数组，见下方结构说明）。未配置字段定义时为 `[]` |
 | custom_tag | array | 案件资源级分类标签（字符串数组，无标签时 `[]`） |
+| processes | array | 案件的**审理程序**列表（每程序各带法官与开庭日期），见下方结构说明。无程序时为 `[]` |
+
+**`processes` 数组元素结构**（一个案件可有多个程序，如一审/二审/再审）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 程序 ID（hashid）。写入法官信息（`judge_data`）与录传票（`related_process_id`）时都回传此值 |
+| process_code | int | 程序代码 |
+| process_text | string | 程序名（对外枚举口径，与顶层 `process` 同源） |
+| unit_name | string | 该程序的受理单位名称 |
+| unit_type | int | 该程序受理单位类型（枚举同顶层 `unit_type`） |
+| unit_type_text | string | 受理单位类型文本 |
+| has_trial_time | int | 该（案件类型, 程序）是否为**开庭类**程序: 1=是, 0=否（按 bool 理解）。**只有 1 才能录传票** |
+| trial_time | string | 该程序现有**开庭日期**（`Y-m-d H:i`）；无则为空串 `""` |
+| judges | array | 该程序的法官/承办人列表，元素 `{ id(hashid), name, phone, job }`；无则 `[]` |
+
+> 顶层 `court` 字段（含 `court.judge` 姓名字符串）为兼容旧调用方保留，只取最新一条程序；多程序案件请用 `processes[]`。
 
 **`custom_fields` 数组元素结构**（与 `GET /cases/create-form` 的 `dynamic_fields` 同源，另附当前值）:
 
@@ -809,6 +826,21 @@ Scope: `calendar.write`
 | allday | int | 否 | 是否全天: 0=否, 1=是 |
 | remind_time | string | 否 | 提醒时间 |
 | org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新日程归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
+| related_process_id | string | 否 | 关联的**案件程序** ID（hashid，来自 `GET /cases/{code}` 的 `processes[].id`）。仅 `type=1`（案件日程）有效。**录传票/开庭必填**——见下方「传票/开庭日程」 |
+| sync_trial_time | int | 否 | `1` = 把本日程的 `htime` 回写为该程序的开庭日期；`0`/不传 = 只关联不回写。只允许 0/1，且必须与 `related_process_id` 同传 |
+
+> **传票/开庭日程（录开庭时间）**：录"传票 / 开庭"这类记录时**必须**走 `related_process_id` + `sync_trial_time=1`，否则该记录**不会出现在 APP「待开庭」**——「待开庭」读的是**案件程序的开庭日期**（`related_process.trial_time`），不是日程本身。日程列表与待办清单不受影响。
+>
+> 流程：
+> 1. `GET /cases/{code}` → 在 `processes[]` 里找 `has_trial_time=1` 的程序（多个开庭类程序时让用户指明是哪个审级）；`trial_time` 是该程序**已有**的开庭日期
+> 2. 若 `trial_time` 已有值，**先向用户确认是否覆盖**（后端不二次确认，`sync_trial_time=1` 即视为已确认）
+> 3. `POST /calendar`：`type=1` + `linkid`=案件 id + `related_process_id`=该程序 id + `htime`=开庭时间 + `sync_trial_time=1`
+>
+> **「待开庭」的显示条件**（工作台既有口径，非 bug）：开庭日期 ≥ 今天，**且案件未结案、未归档**。已结案/已归档案件的传票不会出现在待开庭。
+>
+> 相关报错：程序不属于该案件 → `程序不存在或不属于该案件`；程序非开庭类却要同步 → `该程序不支持开庭日期同步（非开庭类程序）`；`type` 非 1 却传了程序 → `关联程序仅支持案件类日程（type=1）`；传 `sync_trial_time=1` 但没传程序 → `同步开庭日期需指定关联程序 related_process_id`；`sync_trial_time` 非 0/1 → `sync_trial_time 只允许 0 或 1`。
+>
+> 成功但同步失败（极少数库故障）→ `日程已保存，但开庭日期同步失败，请重试或到 OA 端同步`（此时日程已创建，**不要重复创建**，重试同一同步即可）。
 
 > **律所拥有者跨子团队关联案件（type=1）**：owner 关联全所内任意子团队的案件时**无需传 `org_id`**，后端会自动把新日程归属到案件所在子团队（待办归属跟随案件）；协办人(assit)校验按案件自身 org（属于案件所在子团队才合法）。非 owner 仍按原严格校验——关联案件必须 ∈ 自身 org，否则报「关联案件不存在或不属于当前组织」。
 
@@ -864,8 +896,10 @@ Scope: `calendar.write`
 | huser | string | 否 | 主办人 UID（hashid，单人，来自 GET /team/members），不传则不变。⚠️ 只能指定一个主办人 |
 | assit | string | 否 | 协办人UID列表，逗号分隔的 hashid（来自 GET /team/members），传空字符串清空，不传则不变 |
 | stage | string | 否 | 案件阶段 ID（hashid，来自 GET /cases/{code}/stages），传空字符串清空 |
+| related_process_id | string | 否 | 关联/改关联的**案件程序** ID（hashid，来自 `GET /cases/{code}` 的 `processes[].id`）。仅 `type=1` 有效。改关联只影响本次指定的程序，旧程序的开庭日期不受影响。契约与报错同 `POST /calendar` 的「传票/开庭日程」 |
+| sync_trial_time | int | 否 | `1` = 把本日程的 `htime`（未传时用记录原 `htime`）回写为该程序的开庭日期；只允许 0/1，需与 `related_process_id` 同传 |
 
-> 至少提供一个更新字段。
+> 至少提供一个更新字段（**只传 `related_process_id` 也算有更新**，用于把既有日程补关联到程序，或配 `sync_trial_time=1` 重推开庭日期）。
 
 **响应**: 返回更新后的完整数据（含 `stage_name`、`huser_text`、`assit_text` 等）。
 

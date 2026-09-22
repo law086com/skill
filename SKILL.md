@@ -3,9 +3,9 @@ name: law086
 version: 2.3.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
-description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
+description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
 description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"自定义字段"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"自定义字段"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -93,7 +93,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
 | GET | /cases/{code}/files/{fileId}/url | 获取文件访问链接 |
 | GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选；分页接口，只取首页） |
-| POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: huser 主办人UID(管理员/拥有者)、assit 协办人UID列表） |
+| POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: huser 主办人UID(管理员/拥有者)、assit 协办人UID列表、related_process_id+sync_trial_time 录传票/开庭） |
 | PUT | /calendar/{id} | 更新日程/记录（状态、人员、时间、阶段等，统一更新入口） |
 | GET | /team/members | 团队成员列表（个人空间不可用） |
 | GET | /clients | 客户列表（keyword 搜索；分页接口，只取首页） |
@@ -141,6 +141,18 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 - `GET /calendar` — 查看日程和记录列表（按日期范围，或按 type+linkid 查案件/项目/客户记录）
 - `GET /records/{id}` — 按ID直接查单条记录详情
 
+### 录传票 / 开庭时间（重要）
+
+用户说"录一张传票""XX案X月X日开庭""把开庭时间加进去"时，**不能只创建一条普通日程**——那样它不会出现在 APP「待开庭」。「待开庭」读的是**案件程序的开庭日期**（不是日程本身），必须带程序参数才能同步：
+
+1. `GET /cases/{code}` → 在 `processes[]` 里找 `has_trial_time=1` 的程序；多个开庭类程序（一审/二审…）时**让用户指明是哪个审级**
+2. 该程序 `trial_time` 已有值时，**必须先向用户确认是否覆盖**（如"该程序已有开庭日期 2026-09-10 10:00，是否覆盖为 …"）
+3. `POST /calendar`：`type=1` + `linkid`=案件 id + `related_process_id`=程序 id + `htime`/`endtime`=开庭时间 + `title`（如"开庭"）+ `sync_trial_time=1`
+
+**法庭、承办法官**等没有独立字段，写进 `title` 或 `content`。
+
+> **「待开庭」显示条件**：开庭日期 ≥ 今天，**且案件未结案、未归档**。已结案/归档案件的传票不会出现在待开庭——这是工作台既有口径，不是故障，不要试图用其它 API 绕过。
+
 ### 用户意图 → API 映射（创建记录类）
 
 无论用户怎么描述，**创建任何记录都调 `POST /calendar`**：
@@ -152,6 +164,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | "记录一下跟华为的沟通" | 需关联客户的联系记录 | 先搜客户 → `POST /calendar {type:3,linkid:...}` |
 | "给XX项目添加工作记录" | 需关联项目的工作记录 | 先搜项目 → `POST /calendar {type:2,linkid:...}` |
 | "创建办案记录" | 问用户关联哪个案件 | 确认后 → `POST /calendar {type:1,linkid:...}` |
+| "录一张传票"、"XX案X月X日开庭" | 传票/开庭 → **必须同步开庭日期** | 先 `GET /cases/{code}` 取 `has_trial_time=1` 的程序（确认覆盖）→ `POST /calendar {type:1,linkid,related_process_id,sync_trial_time:1}`（见「录传票 / 开庭时间」） |
 
 **关键规则**：只要提到具体案件/项目/客户名称，就必须搜索获取 ID 并传入 `linkid`+`type`。只有完全没提任何实体时才用 `type:0`。
 
@@ -444,3 +457,4 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "取消XX案的结案" | 取消结案 | **先二次确认** → `POST /cases/{code}/close '{"j_time":null}'` |
 | "把XX案件归档" | 归档 | 先确认案件与归档日期 → `POST /cases/{code}/archive '{"g_time":"2026-09-21"}'`（需 `cases.archive`） |
 | "取消归档" | 取消归档 | **先二次确认** → `POST /cases/{code}/archive '{"g_time":null}'`（三字段一并清空） |
+| "录一张传票，XX案10月8日9点开庭" | 传票/开庭 | `GET /cases/{code}` 取 `has_trial_time=1` 的程序（有 `trial_time` 先确认覆盖）→ `POST /calendar '{"type":1,"linkid":"...","related_process_id":"...","htime":"2026-10-08 09:00","endtime":"...","title":"开庭","sync_trial_time":1}'`（**漏 sync_trial_time 则 APP 待开庭不显示**） |
