@@ -651,7 +651,7 @@ Scope: `cases.write`
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | file | file | 是 | 上传的文件 |
-| folder_id | int | 否 | 文件夹 ID，默认 0 |
+| folder_id | string/int | 否 | 目标文件夹 ID（**hashid**，来自 `GET /cases/{code}/folders` 的 `id`；纯数字 int 也接受）。默认 0 = 根目录。**传了不属于该案件的 id → `文件夹不存在或不属于该案件`，文件不上传** |
 | record_id | int | 否 | 关联记录 ID，默认 0 |
 
 **文件限制**:
@@ -694,9 +694,29 @@ Scope: `cases.read`
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| folder_id | int | 否 | 按文件夹筛选 |
+| folder_id | string/int | 否 | 按文件夹筛选（hashid 或纯数字 int；传不属于该案件的 id → `文件夹不存在或不属于该案件`，不再静默返回空列表） |
 | limit | int | 否 | 每页条数，默认 20 |
 | page | int | 否 | 页码，默认 1 |
+
+### GET /cases/{code}/folders - 案件文件夹列表
+
+Scope：`cases.read`
+
+返回该案件的文件夹（平铺数组，靠 `parent_id` 组层级；AI 按名匹配后把 `id` 作为上传的 `folder_id` 直传目标文件夹）。
+
+**响应 data 数组元素**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 文件夹 ID（hashid）。上传文件时作为 `folder_id` 回传 |
+| name | string | 文件夹名（≤32 字） |
+| parent_id | string | 父文件夹 ID（hashid）；根级文件夹为 `"0"` |
+
+排序 `parent asc, id asc`（同层稳定）。无文件夹时 `data: []`。
+
+> **上传到指定文件夹的正确流程**：用户说"把这份证据传到『证据材料』文件夹"时——① `GET /cases/{code}/folders` 按名匹配（含子文件夹，用 parent_id 判断层级）→ ② `POST /cases/{code}/files` 带 `folder_id=<该 id>`。**不要先传根目录再让用户手动拖**；文件名匹配不到时与用户确认文件夹名或引导其在 OA 端先建文件夹（API 不支持建文件夹）。
+>
+> **不支持的操作**：移动文件、删除文件、创建/重命名文件夹——均需到 OA 网页端或 APP 完成。
 
 **成功响应**:
 
