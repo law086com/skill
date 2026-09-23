@@ -197,14 +197,17 @@ Scope: `cases.read`
 | fee_type | int | 收费类型 (1=定额, 2=风险, 3=计时, 4=计件, 5=免费) |
 | process | string | 案件程序 |
 | anhao | string | 案号 |
-| privyc | array | 当事人列表 |
-| privyc[].type | int | 1=委托方(原告), 2=对方(被告) |
-| privyc[].name | string | 名称 |
-| privyc[].c_type | int | 当事人细类 |
-| privyc[].dsr_type | int | 1=个人, 2=单位 |
-| privyc[].card_num | string | 证件号码 |
-| privyc[].phone | string | 联系电话 |
-| privyc[].address | string | 地址 |
+| parties | array | 当事人列表（历史上写作 privyc，实际字段名为 **parties**） |
+| parties[].id | string | 当事人 ID（hashid）。PATCH 修改/删除当事人时回传此值 |
+| parties[].name | string | 名称 |
+| parties[].type | int | 1=委托方(原告), 2=对方(被告) |
+| parties[].c_type | int | 委托方属性代码（见 POST /cases 的 c_type 枚举表；0=未设置） |
+| parties[].c_type_text | string | 委托方属性中文名（如"上诉人"；未设置为空串） |
+| parties[].dsr_type | int | 1=个人, 2=单位 |
+| parties[].link_type / link_type_text | int/string | 同 type / 「委托方」「对方」 |
+| parties[].card_num | string | 证件号码 |
+| parties[].phone | string | 联系电话 |
+| parties[].address | string | 地址 |
 | cl_id | string | 关联客户 ID（hashid，可为 null） |
 | link_pr | string | 关联项目 ID（hashid，可为 null） |
 | created_at | string | 创建时间 |
@@ -315,6 +318,34 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 | stage_text | string | 否 | 阶段文本（不可传空值，新增或激活该阶段为当前阶段） |
 | custom_fields | string/object | 否 | 自定义字段值 JSON（见下方说明；键支持 `cusfields_id_{hashid}`（create-form 原样回传）或裸 `{hashid}`，两种形态等价） |
 | custom_tag | string/array | 否 | 案件分类标签。数组自动拼接为逗号串；传空串 `""` 显式清空；未传不动 |
+| privyc_data | string/object | 否 | **当事人更新**（JSON 字符串或对象，见下方「privyc_data 更新说明」）：replace 全量替换 / add 追加或改属性 / delete 删除 |
+
+> ⚠️ 注意：POST 的 `privyc_data` 是**纯数组**（初始当事人集合）；PATCH 的 `privyc_data` 是**带 action 的对象**（更新指令）——两者同名不同形态。
+
+**`privyc_data` 更新说明**（仅 PATCH /cases/{code}）:
+
+```json
+{ "action": "replace", "privyc": [ { "name": "李凯达", "c_type": "上诉人" }, { "name": "展创未来", "c_type": "被上诉人" } ] }
+```
+
+| action | 语义 | 要点 |
+|--------|------|------|
+| replace | 软删该案**全部**现有当事人，插入 `privyc` 数组作为新集合 | **修正已录错身份的首选**（如把"原告/被告"纠正为"上诉人/被上诉人"）；元素校验同 POST（c_type 双收/推导）；**空数组被拒绝**（案件必须至少一名当事人） |
+| add | 逐条追加；**同名（trim 后全等）的当事人原地更新**，只覆盖显式提供的字段 | 给单个当事人改属性用它（只传 name + 新 c_type 即可，其余字段不动）；防重复录入 |
+| delete | 按 `id`（hashid，来自 `GET /cases/{code}` 的 `parties[].id`）删除 | 删除后案内须仍至少一名当事人，否则整单失败；id 不属于该案 → `当事人不存在或不属于该案件` |
+
+- 报错：action 缺失/非法 → `请指定操作类型 action：replace(替换) / add(追加) / delete(删除)`；c_type 非法 → `委托方属性无效：{原值}…`（文案同 POST）。
+- **改当事人不会重建案件名**（案件名是独立可编辑字段）；需要的话另行处理。
+- 失败整单回滚：任一环节出错，案件主表与本批当事人都不变。
+
+**修正示例**（把 API 早期录入、身份显示为"原告/被告"的二审案纠正过来）：
+
+```bash
+# 1. 看当前当事人
+GET /cases/{code}          # → data.parties[]
+# 2. 全量替换为正确身份（李凯达=上诉人、展创未来=被上诉人）
+PATCH /cases/{code} '{"privyc_data":{"action":"replace","privyc":[{"name":"李凯达","c_type":"上诉人"},{"name":"展创未来","c_type":"被上诉人"}]}}'
+```
 
 **`custom_fields` 写入说明**（POST /cases 与 PATCH /cases/{code} 共用同一契约）:
 
@@ -378,9 +409,9 @@ Content-Type: application/json
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | name | string | 至少一个对象非空 | 当事人名称 |
-| type | int | 否 | 1=委托方/原告方, 2=对方/被告方（决定自动案件名拼接） |
+| type | int | 否 | 1=委托方/原告方, 2=对方/被告方。**传了 c_type 时会被 c_type 推导覆盖**（见下） |
+| c_type | int/string | 否 | **委托方属性**（二审/再审/执行等案件必传，否则一律按"原告/被告"显示）。**双收**：数字代码（`112`）或中文名（`"上诉人"`）等价。枚举见下表。传了它会自动推导 `type`（进攻方→1、防御方→2、其他参与人→1），**与显式 type 矛盾时以 c_type 为准**。非法值（不在枚举）→ 整单失败，案件不创建 |
 | short_name | string | 否 | 简称 |
-| c_type | int | 否 | 当事人细类 |
 | dsr_type | int | 否 | 1=个人, 2=单位 |
 | sex | int | 否 | 性别 |
 | nation | string | 否 | 民族 |
@@ -390,6 +421,21 @@ Content-Type: application/json
 | address | string | 否 | 地址 |
 | legal_man | string | 否 | 法定代表人 |
 | mark | string | 否 | 备注 |
+
+**`c_type` 委托方属性枚举**（双收：代码或中文名；与 OA 网页端/XLS 导入同一套）：
+
+| 段位 | 代码 → 名称 |
+|------|------------|
+| 民事·进攻方 | 111原告 / 112上诉人 / 113申请人 / 114再审申请人 / 115原审原告 / 116共同原告 / 117申请执行人 |
+| 民事·防御方 | 121被告 / 122被上诉人 / 123被申请人 / 124再审被申请人 / 125原审被告 / 126共同被告 / 127被执行人 |
+| 民事·其他参与人 | 131第三人 / 132法定代理人 / 133委托代理人 / 134其它 / 135异议人 / 136复议人 |
+| 刑事·进攻方 | 211被害人 / 212自诉人 / 213原告人 / 214申诉人 / 215公诉人 |
+| 刑事·防御方 | 221犯罪嫌疑人 / 222被告人 / 223上诉人 / 224原审被告人 |
+| 刑事·其他参与人 | 231第三人 / 232法定代理人 / 233委托代理人 / 234其它 |
+
+> **中文名重名的消歧**（上诉人/第三人/法定代理人/委托代理人/其它 各有民事、刑事两个代码）：**按案件类型取段**——刑事案（type=4）取 2xx 段（"上诉人"→223），其他案件取 1xx 段（"上诉人"→112）。只存在一个代码的名称（如"申请执行人"117）不受影响。**录入二审/执行案件时建议直接用中文名**（用户口中就是"上诉人/被上诉人/申请执行人"），无需查表。
+>
+> 典型用法——二审案：`[{"name":"李凯达","c_type":"上诉人"},{"name":"展创未来","c_type":"被上诉人"}]`（**不必再传 type**，自动推导且案件名拼对）；执行案：`[{"name":"李海平","c_type":"申请执行人"},{"name":"某公司","c_type":"被执行人"}]`。
 
 > **自动生成（客户端不要传）**：`case_code`、`c_num`（留空时按组织序号生成）、案件名（未传 `case_name` 时拼接）、主办律师 related_worker（自动 = PAT 调用者，使创建后案件对创建人可见）。
 

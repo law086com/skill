@@ -1,11 +1,11 @@
 ---
 name: law086
-version: 2.3.0
+version: 2.4.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
 description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
 description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"自定义字段"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"上诉人"、"被上诉人"、"申请执行人"、"被执行人"、"委托方属性"、"自定义字段"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -85,7 +85,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /cases/{code} | 案件详情（含当事人、阶段、财务、自定义字段 custom_fields/custom_tag） |
 | GET | /cases/create-form | 案件自定义字段 schema（含字段键/类型/选项/必填；写自定义字段前先调） |
 | POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums；可选 custom_fields/custom_tag） |
-| PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/current_stage_id/anyou/unit_name+unit_type/stage_text/custom_fields/custom_tag）⚠️ unit_name 与 unit_type 须同时提供 |
+| PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/current_stage_id/anyou/unit_name+unit_type/stage_text/custom_fields/custom_tag/privyc_data 当事人 replace·add·delete）⚠️ unit_name 与 unit_type 须同时提供 |
 | POST | /cases/{code}/close | 案件结案 / 取消结案（可选 j_time/ja_status/suc_amount；**显式传 null 即取消结案**）⚠️ 律所开启结案审批时不可用 |
 | POST | /cases/{code}/archive | 案件归档 / 取消归档（可选 g_time/g_user/g_address；**显式传 null 即取消归档，三字段一并清空**）⚠️ 律所开启归档审批时不可用 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
@@ -261,6 +261,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 1. AI 调用 `GET /enums` 获取枚举字典（取 `case_type` 案件类型、`case_unit_type` 受理单位类型等）
 2. AI 收集用户输入：`type`（案件类型 1-5）+ `privyc_data`（当事人，至少一个含 name）+ 其他可选字段
 3. AI 按枚举值把人类可读描述（如"民事案件"）映射为数字（如 1），把当事人原被告关系映射为 `type`(1=原告方/委托方、2=被告方/对方)
+4. **当事人身份用 `c_type`（委托方属性）优先**：用户说"上诉人/被上诉人/申请执行人/被执行人/申请人…"时，给该当事人传 `c_type`（中文名或代码均可，如 `{"name":"李凯达","c_type":"上诉人"}`）——**不必再传 `type`**（由 c_type 自动推导，案件名也会拼对）。**只传 type 不传 c_type 的当事人会被一律显示为"原告/被告"**，二审/再审/执行案件务必带上。枚举表见 references/api-reference.md 的 POST /cases 一节
 4. AI 展示人类可读的确认信息（案件类型、当事人列表、案由、审理程序等），等待用户确认
 5. 用户确认后，AI 调用 `POST /cases` 创建
 6. 创建成功后返回 `{ case_code, c_num, id, case_name }`
@@ -453,6 +454,9 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "下载文件" / "预览文件" | 获取文件链接 | `GET /cases/{code}/files/{fileId}/url` |
 | "把XX案件结案" | 结案 | 先确认案件与结案日期 → `POST /cases/{code}/close '{"j_time":"2026-09-21"}'`（需 `cases.close`） |
 | "录入一个已结案的案件" | 创建+结案 | 先 `POST /cases` 创建 → 再 `POST /cases/{code}/close '{"j_time":"...","ja_status":...}'` 补结案（**漏第二步案件会停在"在办"**） |
+| "录入二审案件：李凯达上诉，对方展创未来" | 二审案 | `POST /cases '{"type":1,"privyc_data":"[{\"name\":\"李凯达\",\"c_type\":\"上诉人\"},{\"name\":\"展创未来\",\"c_type\":\"被上诉人\"}]"}'`（**不传 c_type 会显示成原告/被告**） |
+| "录入执行案件" | 执行案 | 同上，c_type 用 `申请执行人` / `被执行人` |
+| "把XX案的原告改成上诉人" | 改当事人属性 | `PATCH /cases/{code} '{"privyc_data":{"action":"add","privyc":[{"name":"XX","c_type":"上诉人"}]}}'`（同名原地更新）；多人全换用 `action:replace` |
 | "XX案达成诉求，胜诉金额10万" | 结案+结果 | `POST /cases/{code}/close '{"j_time":"...","ja_status":1,"suc_amount":100000}'` |
 | "取消XX案的结案" | 取消结案 | **先二次确认** → `POST /cases/{code}/close '{"j_time":null}'` |
 | "把XX案件归档" | 归档 | 先确认案件与归档日期 → `POST /cases/{code}/archive '{"g_time":"2026-09-21"}'`（需 `cases.archive`） |
