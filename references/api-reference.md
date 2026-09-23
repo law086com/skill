@@ -716,7 +716,47 @@ Scope：`cases.read`
 
 > **上传到指定文件夹的正确流程**：用户说"把这份证据传到『证据材料』文件夹"时——① `GET /cases/{code}/folders` 按名匹配（含子文件夹，用 parent_id 判断层级）→ ② `POST /cases/{code}/files` 带 `folder_id=<该 id>`。**不要先传根目录再让用户手动拖**；文件名匹配不到时与用户确认文件夹名或引导其在 OA 端先建文件夹（API 不支持建文件夹）。
 >
-> **不支持的操作**：移动文件、删除文件、创建/重命名文件夹——均需到 OA 网页端或 APP 完成。
+> **存量整理**：已上传的文件挪夹用 `PATCH /cases/{code}/files/{fileId}`；文件夹改名/移动用 `PATCH /cases/{code}/folders/{folderId}`（见下两节）。
+>
+> **不支持的操作**：删除文件、删除文件夹、创建/重命名文件夹之外——**重命名与移动已支持**（下方两个 PATCH 端点）。仍不支持的：删除（文件/文件夹）、创建文件夹、从模板套用文件夹。
+
+### PATCH /cases/{code}/folders/{folderId} - 重命名/移动文件夹
+
+Scope：`cases.write`
+
+`folderId` 为 hashid（`GET folders` 的 `id`）。两个参数可单传可同传。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 与 parent_id 至少一个 | 新文件夹名（非空，≤32 字） |
+| parent_id | string/int | 与 name 至少一个 | 新父文件夹（hashid 或纯数字）；**`0` = 移到根目录** |
+
+**报错**：文件夹不属于该案 / parent_id 非法 → `文件夹不存在或不属于该案件`；把文件夹移到**自身或其子文件夹**下 → `不能把文件夹移动到自身或其子文件夹下`；name 空/超长 → 对应文案；两参数全缺 → `没有可更新的字段`。
+
+**示例**：
+
+```bash
+PATCH /cases/{code}/folders/aB3xKp
+{"name": "证据材料-2026"}                          # 只改名
+{"parent_id": "mN9wRq"}                            # 移到 mN9wRq 夹下
+{"name": "证据材料-2026", "parent_id": "0"}         # 改名并移到根
+```
+
+**响应**：`{id, name, parent_id}`（与 GET folders 同构，parent_id 根级为 "0"）。移动（含子孙夹与其中文件的层级）由后端自动维护。
+
+### PATCH /cases/{code}/files/{fileId} - 移动文件到文件夹
+
+Scope：`cases.write`
+
+`fileId` 为 hashid（`GET files` 的 `id`）。把**已上传的文件**挪到目标文件夹——存量文件归位用。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| folder_id | string/int | 是 | 目标文件夹（hashid 或纯数字，须属于该案）；**`0` = 移回根目录**（⚠️ 与上传端点不同：这里显式 0 是合法操作"移到根"，不是"未提供"） |
+
+**报错**：文件不属于该案 → `文件不存在或不属于该案件`；目标夹非法 → `文件夹不存在或不属于该案件`；不传 folder_id → `没有可更新的字段`。
+
+**响应**：`{id, file_name, folder_id}`（根为 "0"）。
 
 **成功响应**:
 

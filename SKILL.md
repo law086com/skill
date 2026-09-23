@@ -92,6 +92,8 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | POST | /cases/{code}/files | 上传文件到案件（multipart/form-data） |
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
 | GET | /cases/{code}/folders | 案件文件夹列表（id/name/parent_id；上传直传目标文件夹前先查） |
+| PATCH | /cases/{code}/folders/{folderId} | 重命名/移动文件夹（name / parent_id 可单传可同传；parent_id=0 移根；防环） |
+| PATCH | /cases/{code}/files/{fileId} | 移动文件到文件夹（folder_id=0 移回根；存量文件归位用） |
 | GET | /cases/{code}/files/{fileId}/url | 获取文件访问链接 |
 | GET | /calendar | 日程/记录列表（支持 type+linkid 按案件/项目/客户筛选；分页接口，只取首页） |
 | POST | /calendar | 创建日程（必填: title/htime/endtime/type；可选: huser 主办人UID(管理员/拥有者)、assit 协办人UID列表、related_process_id+sync_trial_time 录传票/开庭） |
@@ -353,6 +355,8 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 **上传文件**：使用 `POST /cases/{code}/files`，发送 `multipart/form-data`，包含 `file` 字段（文件本身）。可选参数：
 - `folder_id`（hashid）— **上传到指定文件夹**。用户说"传到『证据材料』文件夹"时：先 `GET /cases/{code}/folders` 按名匹配拿 id，再直传；**不要传根目录（0）后让用户手动拖**。匹配不到时与用户确认名称或引导其在 OA 端建文件夹（API 不能建夹）
 - `record_id`（hashid）— 关联到指定日程/办案记录，文件在日程详情中可见
+
+**整理存量**：已上传的文件挪夹 → `PATCH /cases/{code}/files/{fileId} {"folder_id":"目标夹id"}`（`0`=移回根）；文件夹改名/移动 → `PATCH /cases/{code}/folders/{folderId}`（`{"name":"新名"}` / `{"parent_id":"目标父夹id"}` 可同传，`0`=移根）。不支持：删除文件/文件夹、创建文件夹。
 
 **文件限制**：
 - 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
