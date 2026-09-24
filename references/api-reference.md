@@ -189,6 +189,9 @@ Scope: `cases.read`
 | c_amount | decimal | 标的额 |
 | w_fee | decimal | 代理费 |
 | charge_desc | string | 收费说明 |
+| fee_mark | string | 收费备注（≤256 字） |
+| fee_subject | string | 收费标的物（≤32 字） |
+| charges | array | **收费方式明细**（每案每收费方式一行，见下方结构说明；无则 `[]`） |
 | case_mark | string | 案件备注 |
 | unit_name | string | 受理单位名称 |
 | unit_type | int | 受理单位类型 (1=法院, 2=检察院, 3=公安机关, 4=仲裁机构, 5=调解机构, 6=鉴定机构, 7=行政机构) |
@@ -198,6 +201,19 @@ Scope: `cases.read`
 | process | string | 案件程序 |
 | anhao | string | 案号 |
 | parties | array | 当事人列表（历史上写作 privyc，实际字段名为 **parties**） |
+
+**`charges` 数组元素结构**（收费方式明细，`fee_type` 字段为旧冗余、以本数组为准）:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| charge_type / charge_type_text | int/string | 收费方式: 1定额收费 / 2风险代理 / 3计时收费 / 4计件收费 / 5免费 |
+| pay_type / pay_type_text | int/string/null | 支付方式: 1一次性支付 / 2分期支付 / 3全风险 / 4半风险 / 5不同费率 / 6单一费率 / 7不同单价 / 8同一单价；免费为 null |
+| risk_rate_type | int/null | 风险费率基准（仅风险代理）: 1按标的额 / 2按执行回款 / 3按减损额 |
+| rate | decimal/null | 费率/比例（风险、计时-单一费率） |
+| contract_amount | decimal/null | 委托合同金额（定额） |
+| fixed_amount | decimal/null | 固定收费金额（风险-半风险、计时、计件） |
+| unit_price | decimal/null | 单价（计件-同一单价） |
+| yg_zx_amount / yg_js_amount | decimal/null | 预估执行回款 / 预估减损额（风险，按 risk_rate_type） |
 | parties[].id | string | 当事人 ID（hashid）。PATCH 修改/删除当事人时回传此值 |
 | parties[].name | string | 名称 |
 | parties[].type | int | 1=委托方(原告), 2=对方(被告) |
@@ -311,6 +327,10 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 | anhao | string | 否 | 案号（最大 128 字） |
 | degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要（只允许这三个值） |
 | charge_desc | string | 否 | 收费描述（最大 100 字，允许清空） |
+| c_amount | number | 否 | 标的额（数字，≥0） |
+| w_fee | number | 否 | 代理费（数字，≥0） |
+| fee_mark | string | 否 | 收费备注（最大 256 字） |
+| fee_subject | string | 否 | 收费标的物（最大 32 字） |
 | current_stage_id | string | 否 | 当前阶段 ID（hashid 编码，必须属于当前案件，切换该阶段为当前活跃阶段） |
 | anyou | string | 否 | 案由（最大 64 字） |
 | unit_name | string | 否 | 受理单位名称（最大 128 字）⚠️ **必须与 `unit_type` 同时提供** |
@@ -319,6 +339,7 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 | custom_fields | string/object | 否 | 自定义字段值 JSON（见下方说明；键支持 `cusfields_id_{hashid}`（create-form 原样回传）或裸 `{hashid}`，两种形态等价） |
 | custom_tag | string/array | 否 | 案件分类标签。数组自动拼接为逗号串；传空串 `""` 显式清空；未传不动 |
 | privyc_data | string/object | 否 | **当事人更新**（JSON 字符串或对象，见下方「privyc_data 更新说明」）：replace 全量替换 / add 追加或改属性 / delete 删除 |
+| charge_data | string/array | 否 | **收费方式更新**（契约同 POST /cases 的「收费方式（charge_data）说明」，**全量替换**：未包含的收费方式行被删除，`[]` = 清空） |
 
 > ⚠️ 注意：POST 的 `privyc_data` 是**纯数组**（初始当事人集合）；PATCH 的 `privyc_data` 是**带 action 的对象**（更新指令）——两者同名不同形态。
 
@@ -348,6 +369,31 @@ PATCH /cases/{code} '{"privyc_data":{"action":"replace","privyc":[{"name":"李�
 ```
 
 **`custom_fields` 写入说明**（POST /cases 与 PATCH /cases/{code} 共用同一契约）:
+
+**`charge_data` 收费方式说明**（POST /cases 与 PATCH /cases/{code} 共用同一契约）:
+
+- 形态：JSON 字符串或数组，每元素 = 一种收费方式。**全量替换**——本次未包含的收费方式行会被删除；传 `[]` = 清空全部收费方式。
+- **联动矩阵**（pay_type 与金额字段按 charge_type 收口，矩阵外金额字段被忽略）：
+
+| charge_type | pay_type（必填） | 接受的金额字段 |
+|---|---|---|
+| 1 定额收费 | 1一次性支付 / 2分期支付 | contract_amount 委托合同金额 |
+| 2 风险代理 | 3全风险 / 4半风险 | rate + risk_rate_type(1按标的额/2按执行回款/3按减损额)；risk_rate_type=2→yg_zx_amount；=3→yg_js_amount；pay_type=4→fixed_amount |
+| 3 计时收费 | 5不同费率 / 6单一费率 | pay_type=6→rate；fixed_amount |
+| 4 计件收费 | 7不同单价 / 8同一单价 | pay_type=8→unit_price；fixed_amount |
+| 5 免费 | （不传） | （不传） |
+
+- 校验：同批 charge_type 不得重复；金额须 ≥0；`charge_data` 为空数组是**显式清空**（与"不传"不同）；失败整单拒绝零写入（与主表/法官/当事人/自定义字段同事务回滚）。
+- **主表冗余字段（c_amount/w_fee/charge_desc/fee_mark/fee_subject）走独立参数**，不随 charge_data 双写。
+
+**示例**：
+
+```bash
+# 风险代理（半风险）：费率 8% 按标的额 + 基础费 1 万
+POST /cases '{"type":1,"privyc_data":"…","charge_data":[{"charge_type":2,"pay_type":4,"rate":8,"risk_rate_type":1,"fixed_amount":10000}]}'
+# 定额 + 计件组合；之后改为只留计件（定额行被删）
+PATCH /cases/{code} '{"charge_data":[{"charge_type":4,"pay_type":8,"unit_price":2000,"fixed_amount":5000}]}'
+```
 
 - 形态：推荐 JSON 字符串（如 `"{\"cusfields_id_J3GGbB3j\":\"一审\"}"`），也接受 JSON 对象。
 - 键：从 `GET /cases/create-form` 的 `dynamic_fields[].key` 原样回传；去掉 `cusfields_id_` 前缀的裸 hashid 也接受。
@@ -396,6 +442,9 @@ Content-Type: application/json
 | charge_desc | string | 否 | 收费描述（最大 100 字） |
 | c_amount | number | 否 | 标的额（数字） |
 | w_fee | number | 否 | 代理费（数字） |
+| fee_mark | string | 否 | 收费备注（最大 256 字） |
+| fee_subject | string | 否 | 收费标的物（最大 32 字） |
+| charge_data | string/array | 否 | **收费方式明细**（JSON 字符串或数组，**全量替换**语义，见下方「收费方式（charge_data）说明」） |
 | process_code | int | 否 | 审理程序代码（参考 GET /enums） |
 | case_mark | string | 否 | 案件备注 |
 | pr_time | string | 否 | 委托时间 (YYYY-MM-DD)，默认当天 |
