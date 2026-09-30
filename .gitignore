@@ -1,1 +1,5 @@
 .DS_Store
+
+# 本地配置：含 PAT Token，绝不入库（README「更新 Skill」明确 .env 不在 git 管理范围内）
+# 模板见 .env.example
+.env

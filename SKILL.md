@@ -1,11 +1,13 @@
 ---
 name: law086
-version: 2.5.0
+version: 2.7.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
-description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
-description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"收费方式"、"风险代理"、"按风险代理收费"、"上诉人"、"被上诉人"、"申请执行人"、"被执行人"、"委托方属性"、"自定义字段"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
+description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, update the engagement/filing date, read and write the case proceeding and case number, read and write judges (court handlers), read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"收费方式"、"风险代理"、"按风险代理收费"、"上诉人"、"被上诉人"、"申请执行人"、"被执行人"、"委托方属性"、"自定义字段"、"法官"、"承办法官"、"承办人"、"承办人员"、"审判长"、"接案日期"、"委案日期"、"委托时间"、"立案日期"、"案号"、"案件程序"、"审理程序"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+
+
 ---
 
 # 案件云 Open API 集成 V2.0
@@ -28,7 +30,7 @@ description: 案件云(law086) AI集成。让律师通过自然语言操作案�
   - **编辑端点**（PATCH/PUT/上传）：可跨子团队编辑/上传全所任意记录（保留记录自身 org_id，编辑不改归属）。
   - **新建端点**（`POST /cases`、`/clients`、`/projects`、`/calendar`、`/contracts`）：支持可选请求参数 `org_id`（hashid）把新记录归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。
   - 非顶层律所 owner 的 PAT（普通成员/团队管理员）跨 org 行为零变化（写端点传非自身 org 会报错「目标组织不在本所范围」；团队管理员/拥有者仍可在本 org 内管理日程）。
-  - 组织结构目前仅支持扁平一层，多级团队递归为二期；跨子团队 host/assit 改派未开放（指**案件层面**主办/协办律师的改派，需到 OA 网页端；**待办层面** 团队/律所管理员或拥有者已支持创建时指定主办人，见下方"主办人指派")。
+  - 组织结构目前仅支持扁平一层，多级团队递归为二期；跨子团队 host/assit 改派未开放（指**案件层面**主办/协办律师的改派，需到 OA 网页端；**待办层面** 团队/律所管理员或拥有者已支持创建时指定主办人，见下方"主办人指派")。⚠️ 这里不开放的**只有**主办/协办律师（我方办案人员）；**法官（OA 叫"承办人员"）不在此列**，它有独立参数 `judge_data` 可写，别混为一谈（见下方「法官/承办人员（judge_data）与委托时间（pr_time）」）。
   - **日程/待办跨子团队关联（owner 专属）**：owner 给**子团队案件**推送待办/办案记录（`POST /calendar` type=1，或 `PUT /calendar/{id}` 改关联案件）时，**可不传 `org_id`**，后端会自动把待办归属到案件所在子团队（`POST`）；`PUT` 改关联案件时记录自身 org 不变，但允许关联到全所任意子团队案件。协办人(assit)校验按**案件自身 org**（属于案件所在子团队才合法）。非 owner 维持原严格校验（关联案件必须 ∈ 自身 org），行为不变。
   - **主办人指派（管理员/拥有者）**：团队/律所管理员或拥有者（含律所顶层 OWNER 全所范围）通过 `POST /calendar` 推送待办/办案记录时，可指定**主办人**（`huser`），让被指派的员工成为待办主办并能在「我的待办」看到。主办人确定优先级：
     1. 传了 `huser`（hashid，来自 `GET /team/members`）→ 解码并校验属于目标 org 后使用
@@ -81,11 +83,11 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /dashboard | 每日概览（今日日程、案件动态、待办） |
 | GET | /search?keyword= | 统一搜索（跨案件+客户+项目） |
 | GET | /enums | 枚举数据字典（案件类型、状态等） |
-| GET | /cases | 案件列表（keyword/g_status/type 筛选；分页接口，只取首页，禁止全量翻页；每项含 custom_fields 自定义字段值） |
-| GET | /cases/{code} | 案件详情（含当事人、阶段、财务、自定义字段 custom_fields/custom_tag） |
+| GET | /cases | 案件列表（keyword/g_status/type 筛选；分页接口，只取首页，禁止全量翻页；每项含 anhao 案号、process_text 案件程序、pr_time 委托时间、cb_name **承办人员(法官)**、host_text 主办律师、custom_fields 自定义字段值） |
+| GET | /cases/{code} | 案件详情（含当事人、阶段、财务、自定义字段 custom_fields/custom_tag、审理程序 processes[] 各带 judges[] 法官与 anhao 案号） |
 | GET | /cases/create-form | 案件自定义字段 schema（含字段键/类型/选项/必填；写自定义字段前先调） |
-| POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums；可选 custom_fields/custom_tag/charge_data 收费方式） |
-| PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/c_amount/w_fee/fee_mark/fee_subject/current_stage_id/anyou/unit_name+unit_type/stage_text/custom_fields/custom_tag/privyc_data 当事人 replace·add·delete/charge_data 收费方式全量替换）⚠️ unit_name 与 unit_type 须同时提供 |
+| POST | /cases | 创建案件（必填: type/privyc_data；process_code 参考 GET /enums；可选 anhao 案号/pr_time 委托时间/judge_data 法官/custom_fields/custom_tag/charge_data 收费方式）。⚠️ process_code/anhao 会**一并建出审理程序行**，否则 OA 的「案件程序/案号」列空白 |
+| PATCH | /cases/{code} | 更新案件（process_code/case_mark/anhao/degree/charge_desc/c_amount/w_fee/fee_mark/fee_subject/current_stage_id/anyou/related_process_id 指定审理程序/unit_name+unit_type/stage_text/pr_time 委托时间/judge_data 法官 replace·add·delete/custom_fields/custom_tag/privyc_data 当事人 replace·add·delete/charge_data 收费方式全量替换）⚠️ unit_name 与 unit_type 须同时提供；pr_time 不可传空；多程序案件改 anhao/受理单位须传 related_process_id |
 | POST | /cases/{code}/close | 案件结案 / 取消结案（可选 j_time/ja_status/suc_amount；**显式传 null 即取消结案**）⚠️ 律所开启结案审批时不可用 |
 | POST | /cases/{code}/archive | 案件归档 / 取消归档（可选 g_time/g_user/g_address；**显式传 null 即取消归档，三字段一并清空**）⚠️ 律所开启归档审批时不可用 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
@@ -274,6 +276,8 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 **自动生成（客户端不要传）**：`case_code`、`c_num`（留空按组织序号生成）、案件名（未传 `case_name` 时按"原告名 诉 被告名"拼接，识别不出原被告用"类型+日期"兜底）、主办律师（自动写入 related_worker = PAT 调用者）。
 
+**批量导入（Excel/表格）常见可选字段**：`pr_time`（委托时间/接案日期，不传=当天）、`process_code`（案件程序）、`anhao`（案号）、`anyou`、`case_mark`、`judge_data`（法官/承办人员）、`custom_fields`（自定义字段，如"诉请""律师建议"）、`charge_data`（收费方式）。⚠️ **接案日期、法官、案件程序、案号在 Open API 都有原生落点**（`pr_time` / `judge_data` / `process_code` / `anhao`），不要去建自定义字段代替 —— 自定义字段不参与 OA 的办理天数、统计、「承办人员」列以及「案件程序/案号」列。已存在的老案件要补录这些字段，用 `PATCH /cases/{code}`（见下方「法官/承办人员（judge_data）与委托时间（pr_time）」与「案件程序 / 案号：两套存储」）。
+
 **关键**：当事人原被告关系决定自动生成的案件名拼接，尽量引导用户指明谁是原告/委托方（type=1）、谁是被告/对方（type=2）。
 
 ### 案件自定义字段读写
@@ -294,6 +298,78 @@ python3 scripts/api.py PATCH /cases/ABC123 '{"custom_fields":"{\"cusfields_id_J3
 - `select`/`multi_select` 的值必须来自 schema 的 `options`；`required` 字段创建时必须提供且非空，更新时不可传空
 - 部分更新：只传要改的键，未传字段保持原值；非必填字段传 `""` 可清空
 - 校验失败（字段 id 不存在 / 选项外取值 / 日期格式错误）返回中文可读报错，整单失败不落库
+
+### 法官/承办人员（judge_data）与委托时间（pr_time）
+
+**先分清三组容易混的字段**（"法官写不了"通常是把这三者看串了）：
+
+| 用户口中的 | API 字段 | 读哪里 | 能否写 |
+|-----------|---------|--------|--------|
+| **法官 / 承办法官 / 承办人员** | `sr_judge` 表，参数 `judge_data`；列表字段 `cb_name` | 列表 `cb_name`；详情 `processes[].judges[]` | ✅ `PATCH /cases/{code}` 的 `judge_data` |
+| 主办律师 / 承办律师（**我方**办案人员） | `host` / `host_text` / `host_uid` | 列表 `host_text` | ❌ 不开放（`host`/`assit` 改派需 OA 网页端） |
+| 接案日期 / 委案日期 / 委托时间 | `pr_time` | 列表 & 详情的 `pr_time` | ✅ `PATCH /cases/{code}` 的 `pr_time` |
+
+> ⚠️ **最常见误判**：在列表里看到「承办人员」列就以为是 `host_text`，查不到就说"法官没有 API 字段"。实际上 OA 案件列表的「承办人员」= `cb_name` = **法官**（法院一方），和 `host_text`（我方主办律师）完全是两回事。法官**有**落点。
+
+**写法官**：`POST /cases` / `PATCH /cases/{code}` 传 `judge_data`（JSON 字符串或对象），必须显式给 `process_code` + `action` + `judges`：
+
+```bash
+# 先读现有程序与法官（多程序案件让用户指明审级）
+python3 scripts/api.py GET /cases/ABC123      # → data.processes[].id / process_code / judges[]
+# 全量替换该程序的法官（会软删该程序下原有法官，动手前先跟用户确认）
+python3 scripts/api.py PATCH /cases/ABC123 '{"judge_data":{"process_code":101,"action":"replace","judges":[{"name":"张三","phone":"13800138000","job":"审判长"},{"name":"李四"}]}}'
+# 只改李四的电话（不传 job → 库里原有职务保留；同名 upsert 不会重复录入）
+python3 scripts/api.py PATCH /cases/ABC123 '{"judge_data":{"process_code":101,"action":"add","judges":[{"name":"李四","phone":"13900139000"}]}}'
+# 删一个法官（id 来自 processes[].judges[].id）
+python3 scripts/api.py PATCH /cases/ABC123 '{"judge_data":{"process_code":101,"action":"delete","judges":[{"id":"abc123"}]}}'
+```
+
+- `action`：`replace` 全量替换（**`judges` 传 `[]` = 清空该程序全部法官**）/ `add` 按姓名 upsert（同名只覆盖显式给的 `phone`/`job`）/ `delete` 按 `id` 软删
+- **整个 `judge_data` 不传 / 传 `{}` 或 `[]` = 不做任何改动**（和"清空"不是一回事）
+- 该程序不存在时会**自动创建**审理程序；`POST /cases` 时只能传 `replace`/`add`（传 `delete` 必然报错）
+- 失败整单回滚：法官、当事人、收费方式、自定义字段与案件主表在同一个事务里，任一环节报错则全部零写入
+
+**写委托时间（接案/委案日期）**：`PATCH /cases/{code}` 传 `pr_time`，接受 `YYYY-MM-DD` 或 `YYYY-MM-DD HH:MM:SS`：
+
+```bash
+python3 scripts/api.py PATCH /cases/ABC123 '{"pr_time":"2026-01-05"}'
+```
+
+- **不传 = 保持原值**；**不能传空**（传 `null`/`""` 报 `委托时间不能为空`，格式非法报 `委托时间格式错误，应为 YYYY-MM-DD`）
+- 该字段是列表「办理天数」与案件统计的计算基准，改之前先跟用户确认；要清空只能去 OA 网页端
+- `POST /cases` 的 `pr_time` 是兜底口径（不传/传空 → 当天），与 PATCH 不同
+
+### 案件程序 / 案号：两套存储（「AI 查得到、OA 看不到」的元凶）
+
+**「案件程序」和「案号」在系统里各有两份存储，OA 只读其中一份：**
+
+| 界面上的列 | **权威来源**（OA 列表/详情/文书模板只读这里） | 历史遗留列（主表；`process_code` 的 migration 注释原文就是「案件程序code--废弃」） |
+|---|---|---|
+| 案件程序 | `sr_related_process.process_text`（审理**程序行**） | `sr_lawcase.process_code` |
+| 案号 | `sr_related_process.anhao`（**程序行的**案号） | `sr_lawcase.anhao` |
+
+**关键事实**：OA 的 `Lawcase::dealBind`（列表）和 `Lawcase::getInfoById`（详情）都会用程序行派生值**无条件覆盖**主表值。所以**案件若没有审理程序行，OA 的这两列永远是空白** —— 而 Open API / 数据库主表里却查得到，极易被误判成「列没勾选」「你看错页面了」。
+
+**Open API 侧的保证**：
+
+- 写入：`POST /cases` 传 `process_code`/`anhao`，或 `PATCH /cases/{code}` 传 `process_code`/`anhao`/`unit_name`+`unit_type`，都会**同步写好程序行**（同时保留主表双写）。
+- 回读：`GET /cases`、`GET /cases/{code}` 的 `process_code`/`process_text`/`anhao` **以程序行为准**，只有该案件**完全没有程序行**时才回落主表遗留列。
+- `process_text` 两套口径别混：**落库 / OA 显示**用入库真值（`101 → 一审`）；**API 回读**用对外枚举（`101 → 初审一审`）。
+
+**用户说「OA 里看不到案号/案件程序」时怎么办**：
+
+1. 先 `GET /cases/{code}` 看 `processes` 数组：
+   - **是空的** → 就是本问题（该案件没有程序行）。用 `PATCH /cases/{code}` 带上 `process_code` 与 `anhao` 补一次，OA 立刻可见：
+     `PATCH /cases/ABC123 '{"process_code":101,"anhao":"(2026)鄂11民初12号"}'`
+   - **不为空** → 数据没问题，才轮到「OA 列表没勾选这两列（列表右上角『列设置』）」或「看的是详情页别的卡片」这类前端展示原因。
+2. **不要**因为 OA 看不到就去建自定义字段代替 —— 自定义字段不参与 OA 的「案件程序/案号」列、办理天数与统计口径。
+
+**多程序案件**（一审/二审/再审各有案号）改案号时必须指定是哪一条，否则接口会明确拒绝（不会猜「最新那条」）：
+
+```bash
+GET /cases/ABC123       # → data.processes[]: [{id, process_code, process_text, anhao, judges…}]
+PATCH /cases/ABC123 '{"related_process_id":"<二审那条的 id>","anhao":"(2026)鄂11民终456号"}'
+```
 
 ### 合同查询指南
 
@@ -379,12 +455,15 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 
 ## 高危操作
 
-- **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）、`current_stage_id`（切换当前阶段）、`unit_name`+`unit_type`（变更受理单位）→ 均需先向用户确认
+- **PATCH /cases/{code}** 中变更 `process_code`（审理程序变更影响流程）、`current_stage_id`（切换当前阶段）、`unit_name`+`unit_type`（变更受理单位）、`pr_time`（变更委托时间/接案日期，影响办理天数与统计口径）→ 均需先向用户确认
+- **PATCH /cases/{code}** 传 `judge_data`（写入/改派法官，replace 会**全量覆盖**该程序下的法官）→ 替换前先把现有法官列给用户确认，避免误删
 - **POST /cases** 创建案件属写操作 → 创建前必须向用户展示案件名、当事人、类型等人类可读信息并确认
 - **POST /cases/{code}/close**（结案）、**POST /cases/{code}/archive**（归档）→ 属案件状态变更，调用前必须向用户确认案件（案件名/案号）与日期
 - **取消结案 / 取消归档（即显式传 `j_time: null` 或 `g_time: null`）→ 必须二次确认**。这是撤销性操作，一旦误传空值就会把已结案的案件退回在办；用户表述含糊时先问清是「要结案」还是「要取消结案」
 
-> ⚠️ **传参禁忌**：结案/归档端点的参数是**三态**的 —— 不传 = 不动该字段，传 `null`/`""` = **清空该字段**。只想改结案状态或胜诉金额时，**不要传 `j_time` 键**，否则等于取消结案。不要用空字符串"占位"。
+> ⚠️ **传参禁忌（结案/归档专属）**：结案/归档端点的参数是**三态**的 —— 不传 = 不动该字段，传 `null`/`""` = **清空该字段**。只想改结案状态或胜诉金额时，**不要传 `j_time` 键**，否则等于取消结案。不要用空字符串"占位"。
+>
+> ⚠️ **别把三态套路套到 `pr_time` 上**：`PATCH /cases/{code}` 的 `pr_time` 是**两态**参数 —— 不传 = 不动，一旦传了就必须是合法日期（`YYYY-MM-DD` 或 `YYYY-MM-DD HH:MM:SS`）；传 `null`/`""` 会直接报错 `委托时间不能为空`。委托时间不允许被 API 清空，要清空请去 OA 网页端。
 >
 > ⚠️ **审批门控**：案件所属律所若开启了结案/归档审批，这两个端点会被拒绝。此时**不要重试、不要改用其它端点绕过**，直接把后端返回的中文提示转述给用户，引导其到 OA 网页端提交审批申请。
 
@@ -421,6 +500,11 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "把案件ABC123的争议类型改成一审" | 写自定义字段 | `GET /cases/create-form` 取字段 key → `PATCH /cases/ABC123 '{"custom_fields":"{\"cusfields_id_xxx\":\"一审\"}"}'`（值须来自 options） |
 | "把案件ABC123的受理单位改成海淀法院" | 更新受理单位 | `PATCH /cases/ABC123 '{"unit_name":"海淀法院","unit_type":1}'`（unit_name+unit_type 须同时传） |
 | "给案件ABC123加一个阶段：质证" | 新增当前阶段 | `PATCH /cases/ABC123 '{"stage_text":"质证"}'` |
+| "案件ABC123的接案日期是2026-01-05" / "委案日期改成1月5日" | 更新委托时间 | `PATCH /cases/ABC123 '{"pr_time":"2026-01-05"}'`（不传=不动，**不可传空**） |
+| "案件ABC123的法官是张三、李四" / "承办法官改成张三" | 写法官（承办人员） | 先 `GET /cases/ABC123` 取 `processes[].process_code`（多程序先问用户审级）→ `PATCH /cases/ABC123 '{"judge_data":{"process_code":101,"action":"replace","judges":[{"name":"张三"},{"name":"李四"}]}}'`（replace 全量覆盖，动手前先确认） |
+| "案件ABC123的法官是谁" | 读法官 | 列表看 `cb_name`；要精确到审级用 `GET /cases/ABC123` 的 `processes[].judges[]`（**不要看 `host_text`**，那是主办律师） |
+| "案件ABC123的案号是(2026)鄂11民初12号" / "案件程序改成初审一审" | 写案号/案件程序 | `PATCH /cases/ABC123 '{"process_code":101,"anhao":"(2026)鄂11民初12号"}'`（会自动建/更新审理程序行，OA 才看得到）。多程序案件须带 `related_process_id` |
+| "为什么 OA 里看不到案号/案件程序" | 排查两套存储 | 先 `GET /cases/ABC123` 看 `processes`：为空 → 该案没有程序行（用上面的 PATCH 补）；不为空 → 才去查 OA 列表「列设置」是否勾选了这两列 |
 | "帮我记录：去法院阅卷" | 添加办案记录 | `POST /calendar '{title,htime,endtime,type:1,linkid:case_id}'` |
 | "今天有什么安排" | 今日日程 | `GET "/calendar?start_date=今天&end_date=今天"` |
 | "创建明天下午2点的日程" | 创建日程 | `POST /calendar '{title,htime,endtime,type:0}'` |

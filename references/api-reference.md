@@ -140,7 +140,7 @@ Scope: `cases.read`
 | g_status | int | 否 | 案件状态: 1=在办, 2=结案, 3=归档 |
 | type | int | 否 | 案件类型: 1=民事, 2=商事, 3=仲裁, 4=刑事, 5=行政 |
 | page | int | 否 | 页码，默认 1 |
-| limit | int | 否 | 每页条数，默认 20 |
+| limit | int | 否 | 每页条数，默认 50 |
 
 **响应 data 字段** (列表项):
 
@@ -149,19 +149,44 @@ Scope: `cases.read`
 | id | string | 案件 ID（hashid） |
 | case_name | string | 案件名称 |
 | case_code | string | 案件编号 |
-| c_num | string | 内部案号 |
-| g_status | int | 状态 (1=在办, 2=结案, 3=归档) |
+| anhao | string | **案号**。有审理程序行时取程序行的 `anhao`（多个程序用中文逗号「，」连接），**没有程序行时才回落主表遗留列**。与 OA「案号」列同源 |
+| g_status | int | 状态 (1=在办, 2=结案, 3=归档)，由 `j_time`/`g_time` 推导 |
+| g_status_text | string | 状态文本（在办/结案/归档） |
 | type | int | 类型 (1=民事, 2=商事, 3=仲裁, 4=刑事, 5=行政) |
-| org_id | int | 组织 ID |
-| pr_time | string | 立案日期 |
-| stage_text | string | 当前阶段文本 |
+| type_text | string | 类型文本 |
+| process_code | string | 审理程序代码（有程序行时取 id 最小的一条；多程序全量见 `GET /cases/{code}` 的 `processes[]`）。枚举见 `GET /enums` |
+| process_text | string | 审理程序名（**对外枚举口径**，如 `初审一审`；与 `processes[].process_text` 同源）。口径见下方「案件程序 / 案号 的两套存储」 |
 | degree | int | 等级 (0=次要, 1=一般, 2=重要) |
+| org_id | int | 组织 ID |
+| pr_time | string | **委托时间**（OA/APP 界面「委案日期」，业务上也叫接案/立案日期），`Y-m-d H:i:s` |
+| j_time | string/null | 结案时间（未结案为 `null`） |
+| g_time | string/null | 归档时间（未归档为 `null`） |
 | created_at | string | 创建时间 |
+| host_text | string | **主办律师**姓名（`sr_related_worker` 的 host 角色，**不是法官**） |
+| host_uid | string | 主办律师 uid（hashid） |
+| c_name | string | 第一委托方名称 |
+| cb_name | string | **承办人员（法官）文本**：单个显示 `姓名` 或 `姓名-电话`；该案有多个审理程序时按程序分组并加 `程序名:` 前缀（如 `初审一审:张三-13800138000，二审:李四`）；无则空串 `""`。与 OA 案件列表「承办人员」列同口径 |
 | org_name | string | **仅顶层律所 owner（全所范围）返回**，案件所属团队名（来自 `Org.name`）。普通成员/子团队管理员的响应不包含此字段 |
 | custom_fields | array | 案件自定义字段（定义+当前值自描述数组，结构同 GET /cases/{code} 的 `custom_fields`，每项含 `key/name/type/value/options/required`）。未配置字段定义时为 `[]` |
 | custom_tag | array | 案件资源级分类标签（字符串数组，无标签时 `[]`） |
 
-> **AI 使用建议**：本端点是**分页接口**。只取第一页（page=1，limit 默认 20），用 `keyword`/`g_status`/`type` 把结果缩到几条。**禁止为「列出全部案件」「统计总数」而翻完所有分页**——用户看不完。判断命中数用响应 `total`；统计数量用 `GET /dashboard`。详见「认证与通用规范 > 分页约定」。
+> **AI 使用建议**：本端点是**分页接口**。只取第一页（page=1，limit 默认 50），用 `keyword`/`g_status`/`type` 把结果缩到几条。**禁止为「列出全部案件」「统计总数」而翻完所有分页**——用户看不完。判断命中数用响应 `total`；统计数量用 `GET /dashboard`。详见「认证与通用规范 > 分页约定」。
+>
+> **「法官」看 `cb_name`，不要看 `host_text`**：列表里 `host_text` 是**主办律师**（我方办案人员），`cb_name` 才是**法官/承办人员**（法院一方）。两者是完全不同的概念，勿混用（详见 PATCH /cases 的「承办人员（法官）≠ 主办律师」说明）。
+
+> **⚠️ 案件程序 / 案号 的两套存储（读写不同源就会「数据在库但 OA 看不到」）**
+>
+> | 界面上的列 | **权威来源**（OA 列表/详情/文书模板只读这里） | 历史遗留列（主表；`process_code` 的 migration 注释原文就是「案件程序code--废弃」） |
+> |---|---|---|
+> | 案件程序 | `sr_related_process.process_text`（审理**程序行**） | `sr_lawcase.process_code` |
+> | 案号 | `sr_related_process.anhao`（**程序行的**案号） | `sr_lawcase.anhao` |
+>
+> - OA 的 `Lawcase::dealBind`（列表）与 `Lawcase::getInfoById`（详情）都会用程序行派生值**无条件覆盖**主表值 —— 所以案件**若没有程序行，OA 这两列永远是空白**，而主表/Open API 里却查得到，极易被误判成「列没勾选」「看错页面」。
+> - 因此 Open API 侧：`POST /cases` 传了 `process_code`/`anhao`、或 `PATCH /cases/{code}` 传了 `process_code`/`anhao`/`unit_name`+`unit_type`，**都会同步写好程序行**（同时保留主表双写，兼容既有回读）。
+> - 回读（列表 + 详情顶层 + `processes[]`）**以程序行为准**，只有**该案件完全没有程序行**时才回落主表遗留列。
+> - `process_text` 有两套口径，别混：**落库 / OA 显示**用入库真值（`101 → 一审`，`ProcessService::getProcessCodeMap()`）；**Open API 回读**用对外枚举（`101 → 初审一审`，`Lawcase::$process_arr`）。
+> - **排查口诀**：`GET /cases` 里看得到案号、用户在 OA 里看不到 → 十有八九是这条案件**没有程序行**（历史数据，或更早期 Open API 建的案件）。用 `GET /cases/{code}` 看 `processes` 是否为空即可确认。
+> - **AI 侧补救办法**：对这类案件重新 `PATCH /cases/{code}`，带上 `process_code` 与 `anhao`，即会自动补出程序行，OA 立刻可见。例：`PATCH /cases/ABC123 '{"process_code":101,"anhao":"(2026)鄂11民初12号"}'`。
 
 ### GET /cases/{code} - 案件详情
 
@@ -183,7 +208,7 @@ Scope: `cases.read`
 | g_status | int | 案件状态 |
 | anyou | string | 案由 |
 | stage_text | string | 当前阶段 |
-| pr_time | string | 立案日期 |
+| pr_time | string | **委托时间**（OA/APP 界面「委案日期」，业务上也叫接案/立案日期），`Y-m-d H:i:s`。可经 `PATCH /cases/{code}` 的 `pr_time` 修改，回读值可原样回写 |
 | j_time | string | 结案日期 |
 | g_time | string | 归档日期 |
 | c_amount | decimal | 标的额 |
@@ -198,8 +223,8 @@ Scope: `cases.read`
 | org_id | int | 组织 ID |
 | degree | int | 等级 |
 | fee_type | int | 收费类型 (1=定额, 2=风险, 3=计时, 4=计件, 5=免费) |
-| process | string | 案件程序 |
-| anhao | string | 案号 |
+| process | string | 案件程序（有程序行时取 `processes[].process_text` 的第一条） |
+| anhao | string | **案号**（有程序行时取各程序行 `anhao` 用中文逗号「，」连接；没有程序行才回落主表遗留列）。逐程序的案号见 `processes[].anhao` |
 | parties | array | 当事人列表（历史上写作 privyc，实际字段名为 **parties**） |
 
 **`charges` 数组元素结构**（收费方式明细，`fee_type` 字段为旧冗余、以本数组为准）:
@@ -245,9 +270,12 @@ Scope: `cases.read`
 | unit_type_text | string | 受理单位类型文本 |
 | has_trial_time | int | 该（案件类型, 程序）是否为**开庭类**程序: 1=是, 0=否（按 bool 理解）。**只有 1 才能录传票** |
 | trial_time | string | 该程序现有**开庭日期**（`Y-m-d H:i`）；无则为空串 `""` |
-| judges | array | 该程序的法官/承办人列表，元素 `{ id(hashid), name, phone, job }`；无则 `[]` |
+| anhao | string | **该程序行的案号**（OA「案号」列读的就是这里）。多程序案件（一审/二审各有案号）按程序区分；写入用 `PATCH /cases/{code}` 的 `related_process_id` + `anhao` |
+| judges | array | 该程序的法官/承办人列表，元素 `{ id(hashid), name, phone, job }`；无则 `[]`。写入/修改走 `PATCH /cases/{code}` 的 `judge_data`（回传 `id` 可精确改删）；列表页对应字段是 `cb_name` |
 
 > 顶层 `court` 字段（含 `court.judge` 姓名字符串）为兼容旧调用方保留，只取最新一条程序；多程序案件请用 `processes[]`。
+>
+> **查询「法官/承办人员」的推荐姿势**：列表用 `GET /cases` 的 `cb_name`（与 OA 列表同口径）；要改就用 `GET /cases/{code}` 取 `processes[].id` + `judges[].id`，再 `PATCH /cases/{code}` 传 `judge_data`。**不要去看 `host`/`host_text`** —— 那是主办律师（我方办案人员），不是法官。
 
 **`custom_fields` 数组元素结构**（与 `GET /cases/create-form` 的 `dynamic_fields` 同源，另附当前值）:
 
@@ -324,7 +352,7 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 |------|------|------|------|
 | process_code | int | 否 | 审理程序代码（只允许 GET /enums 返回的合法值） |
 | case_mark | string | 否 | 案件备注（允许清空） |
-| anhao | string | 否 | 案号（最大 128 字） |
+| anhao | string | 否 | 案号（最大 128 字）。**同时写入审理程序行**（OA「案号」列读的是程序行，见上方「案件程序 / 案号 的两套存储」）；多程序案件请配合 `related_process_id`，否则报错 |
 | degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要（只允许这三个值） |
 | charge_desc | string | 否 | 收费描述（最大 100 字，允许清空） |
 | c_amount | number | 否 | 标的额（数字，≥0） |
@@ -333,13 +361,56 @@ V2 将 V1 的 PUT 改为 PATCH，路径参数使用 `case_code`（明文字符�
 | fee_subject | string | 否 | 收费标的物（最大 32 字） |
 | current_stage_id | string | 否 | 当前阶段 ID（hashid 编码，必须属于当前案件，切换该阶段为当前活跃阶段） |
 | anyou | string | 否 | 案由（最大 64 字） |
-| unit_name | string | 否 | 受理单位名称（最大 128 字）⚠️ **必须与 `unit_type` 同时提供** |
-| unit_type | int | 否 | 受理单位类型: 1=法院, 2=检察院, 3=公安机关, 4=仲裁机构, 5=调解机构, 6=鉴定机构, 7=行政机构 ⚠️ **必须与 `unit_name` 同时提供** |
+| related_process_id | string | 否 | **审理程序 ID**（hashid，来自 `GET /cases/{code}` 的 `processes[].id`）。用于多程序案件指定「`anhao` / `unit_name`+`unit_type` 改的是哪一条程序行」。必须属于当前案件。省略时的定位规则见下方「审理程序定位」 |
+| unit_name | string | 否 | 受理单位名称（最大 128 字）⚠️ **必须与 `unit_type` 同时提供**；写入审理程序行 |
+| unit_type | int | 否 | 受理单位类型: 1=法院, 2=检察院, 3=公安机关, 4=仲裁机构, 5=调解机构, 6=鉴定机构, 7=行政机构 ⚠️ **必须与 `unit_name` 同时提供**；写入审理程序行 |
 | stage_text | string | 否 | 阶段文本（不可传空值，新增或激活该阶段为当前阶段） |
+| pr_time | string | 否 | **委托时间（接案/委案日期）**，`YYYY-MM-DD` 或 `YYYY-MM-DD HH:MM:SS`。未传 = 保持原值；**不允许传空**（空值/非法格式整单失败，见下方「委托时间（pr_time）」） |
+| judge_data | string/object | 否 | **法官（承办人员）写入**（契约同 POST /cases，见下方「法官/承办人员（judge_data）」）：replace 全量替换 / add 新增或改属性 / delete 删除 |
 | custom_fields | string/object | 否 | 自定义字段值 JSON（见下方说明；键支持 `cusfields_id_{hashid}`（create-form 原样回传）或裸 `{hashid}`，两种形态等价） |
 | custom_tag | string/array | 否 | 案件分类标签。数组自动拼接为逗号串；传空串 `""` 显式清空；未传不动 |
 | privyc_data | string/object | 否 | **当事人更新**（JSON 字符串或对象，见下方「privyc_data 更新说明」）：replace 全量替换 / add 追加或改属性 / delete 删除 |
 | charge_data | string/array | 否 | **收费方式更新**（契约同 POST /cases 的「收费方式（charge_data）说明」，**全量替换**：未包含的收费方式行被删除，`[]` = 清空） |
+
+> ⚠️ 注意：POST 的 `privyc_data` 是**纯数组**（初始当事人集合）；PATCH 的 `privyc_data` 是**带 action 的对象**（更新指令）——两者同名不同形态。`judge_data` 在 POST 与 PATCH **是同一份契约**（都是带 action 的对象），没有这个差异。
+
+**审理程序定位（`related_process_id` / `process_code`）**：
+
+`anhao`、`unit_name`+`unit_type` 都挂在**某一条审理程序**上，PATCH 时按以下优先级定位目标程序行：
+
+| 优先级 | 条件 | 目标程序行 |
+|---|---|---|
+| 1 | 传了 `related_process_id` | 该 id 对应的程序行（必须属于当前案件，否则报错；hashid 无法解析 → `审理程序 id 无效`） |
+| 2 | 传了 `process_code` | 按 `(案件, process_code)` 定位；**不存在则新建**该程序行 |
+| 3 | 案件只有 1 条程序行 | 用它 |
+| 4 | 案件**没有**程序行 | 用主表遗留 `process_code` 兜底（空则「其它」）**新建**程序行 |
+| 5 | 案件有 **≥2** 条程序行且都没传 | ❌ 报错 `该案件有多个审理程序，请用 related_process_id 指定要更新哪一个（可先调 GET /cases/{code} 取 processes[].id）` |
+
+- **只传 `process_code`（不传 anhao/unit）也会建出程序行** —— 这正是批量导入场景让 OA「案件程序」列有值的办法。
+- 多程序案件改案号示例：
+
+```bash
+# 1. 看有哪些程序、各自的 id 与案号
+GET /cases/ABC123         # → data.processes[]: [{id, process_code, process_text, anhao, judges…}]
+# 2. 只改「二审」那条的案号（禁止不带 related_process_id 硬改，接口会拒绝）
+PATCH /cases/ABC123 '{"related_process_id":"<二审的 processes[].id>","anhao":"(2026)鄂11民终456号"}'
+```
+
+- 校验**先于事务**：定位失败时，同请求的其它字段零变化。
+
+**委托时间（pr_time）**：
+
+| 传值 | 行为 |
+|------|------|
+| 不传 | 保持原值不动（**两态参数**，不是 close/archive 那类三态参数） |
+| `2026-01-05` | 写入（dateTime 列落 `2026-01-05 00:00:00`）。OA/APP 日期选择器的提交口径 |
+| `2026-01-06 08:30:00` | 写入。`GET /cases/{code}` 的回读口径，可原样回写 |
+| `""` / 纯空白 / `null` | ❌ `委托时间不能为空` |
+| `2026/01/05`、`2026-1-5`、`2026-13-45`、`2026-02-30`、`2026-01-05 25:00:00`、数组 | ❌ `委托时间格式错误，应为 YYYY-MM-DD` |
+
+> **为什么不允许清空**：`sr_lawcase.pr_time` 是列表「办理天数」与案件统计的计算基准，写 `NULL` 会让按天计算产出荒谬值；建案时（`POST /cases`）该列也必有值（不传兜底当天）。校验**先于事务**，失败时同请求的其它字段零变化。
+> **与 POST 的差异**：`POST /cases` 对 `pr_time` 是「不传/传空 → 当天」的兜底口径（建案必须有值）；PATCH 侧不允许空值。要清空请到 OA 网页端操作。
+
 
 > ⚠️ 注意：POST 的 `privyc_data` 是**纯数组**（初始当事人集合）；PATCH 的 `privyc_data` 是**带 action 的对象**（更新指令）——两者同名不同形态。
 
@@ -401,7 +472,68 @@ PATCH /cases/{code} '{"charge_data":[{"charge_type":4,"pay_type":8,"unit_price":
 - 部分更新：只改传入的键，未传字段保持原值；非必填字段可传空串 `""` 清空。
 - 校验：字段 id 不存在 → `"自定义字段id不存在"`；选项外取值 / 必填传空 / 日期格式错误 → 中文可读报错，整单失败不落库。
 
-> **不可更新字段**：`status`、`host`/`assit`（律师团队）、`fee_type` 等属独立业务流程，需在 OA 网页端操作，Open API 不开放。这些字段即使传入也会被忽略。
+**法官/承办人员（`judge_data`）写入说明**（POST /cases 与 PATCH /cases/{code} **共用同一份契约**）:
+
+> **术语口径（重要，别找错字段）**：`sr_judge` 表在 Open API 输出里叫**法官**，在 OA 界面标签叫**承办人员**，是**同一张表**；OA 案件列表的「承办人员」列就是本接口响应里的 `cb_name`。它与**主办律师**（`host` / 列表 `host_text`，即我方办案人员）是两个完全不同的概念 —— 找「法官」不要去看 `host`/`host_text`。
+
+```json
+{ "process_code": 101, "action": "replace",
+  "judges": [{ "id": "abc123", "name": "张三", "phone": "13800138000", "job": "审判长" }] }
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| process_code | int | 是 | 案件程序代码（∈ `GET /enums` 的 `process_code` 枚举）。该程序不存在时按 `(case_id, process_code)` **自动创建**审理程序 |
+| action | string | 是 | `replace` 替换 / `add` 新增或改属性 / `delete` 删除。**API 不做任何猜测，必须显式指定** |
+| judges | array | 是 | 法官列表，单次最多 50 条 |
+| judges[].id | string | `delete` 时必填 | 法官 ID（hashid，来自 `GET /cases/{code}` 的 `processes[].judges[].id`） |
+| judges[].name | string | `replace`/`add` 时必填 | 法官姓名（≤128 字，trim 后不可为空） |
+| judges[].phone | string | 否 | 联系电话（≤128 字） |
+| judges[].job | string | 否 | 职务（≤128 字，如「审判长」） |
+
+| action | `judges` 语义 | 行为 |
+|--------|--------------|------|
+| `replace` | 目标程序的**全量**法官列表 | 软删该程序下**全部**法官后插入；**传空数组 `[]` = 清空该程序全部法官** |
+| `add` | 待新增/更新项 | 按 `name` 在**该程序内** upsert：同名 → **仅覆盖显式提供的 `phone`/`job`**，新名 → 插入。防重复录入 |
+| `delete` | 待删除项 | 按 `id`（hashid）软删；id 缺失/解码失败/不属于该程序 → 报错，**不静默跳过** |
+
+- **`add` 的「未提供 vs 显式空串」**：`phone`/`job` 未提供 = 保持原值；显式传空串 `""` = 清空。只改电话（不传 `job`）**不会**清掉库里已有的 `job`。`replace` 是全量语义，未提供的字段落空串。
+- **整个 `judge_data` 缺省 / `null` / 空串 / `{}` / `[]` = 未提供（no-op）**，与「`action: "replace"` + `judges: []`（清空）」不同，注意区分。
+- **`POST /cases` + `action: "delete"` 必然报错**：新建案件时该程序必然不存在，返回 `法官不存在或不属于指定案件程序` 并整单回滚（案件不落库）。要在建案时录入法官请用 `replace` 或 `add`。
+- 校验规则：`process_code` 必填且 ∈ 程序枚举；`action` ∈ replace/add/delete；`judges` 必须是数组且 ≤ 50 条；`name` 必填（trim 后非空、≤128 字）；`phone`/`job` 各 ≤128 字。
+- **校验先于事务，失败整单回滚**（案件主表、本批法官、当事人、自定义字段等本次请求的所有改动一起回滚，零写入）。
+- 写入并入请求**既有事务**；`sr_judge` / `sr_related_process` 均无 `org_id` 列，隔离继承父案件的 `org_id`。
+
+| 错误消息 | 触发条件 |
+|---------|---------|
+| `judge_data 格式无效，必须是 JSON 对象或数组` | JSON 字符串无法解析，或传入非数组/对象 |
+| `请指定案件程序 process_code（可选值见 GET /enums 返回的 process_code 枚举）` | `process_code` 缺失/空 |
+| `案件程序代码无效，请参考 GET /enums 返回的 process_code 枚举` | `process_code` 不在程序枚举内 |
+| `请指定操作类型 action：replace(替换) / add(新增) / delete(删除)` | `action` 缺失/空 |
+| `操作类型无效，只允许 replace(替换) / add(新增) / delete(删除)` | `action` 非三值之一 |
+| `judges 必须是数组` | `judges` 缺失或非数组 |
+| `单次提交的法官数量不能超过 50` | `judges` 超过 50 条 |
+| `法官姓名不能为空` / `法官姓名长度不能超过128字` | `name` 校验失败 |
+| `法官联系电话长度不能超过128字` / `法官职务长度不能超过128字` | `phone` / `job` 超长 |
+| `删除操作需提供法官 id` | `delete` 未提供 `id` |
+| `法官不存在或不属于指定案件程序` | `delete` 的 `id` 解码失败或不属于该程序（含 `POST /cases` 传 delete） |
+
+**读回**：`GET /cases/{code}` → `processes[]`（每个审理程序各带 `judges[]`，元素 `{id(hashid), name, phone, job}`；`processes[].id` 即写入时的 `related_process_id` 定位依据，`GET /cases/{code}` 的 `processes[].id` 也是录传票时的 `related_process_id`）；`GET /cases` 列表 → `cb_name`（逗号串文本）。
+
+**示例**（给一审程序整体录入两名法官）：
+
+```bash
+# 1. 取程序与现有法官（多程序案件让用户指明审级）
+GET /cases/{code}          # → data.processes[]，取 process_code 与 processes[].judges[]
+# 2. 全量替换该程序的法官
+PATCH /cases/{code} '{"judge_data":{"process_code":101,"action":"replace","judges":[{"name":"张三","phone":"13800138000","job":"审判长"},{"name":"李四"}]}}'
+# 3. 只改李四的电话（不传 job → 原有职务保留）
+PATCH /cases/{code} '{"judge_data":{"process_code":101,"action":"add","judges":[{"name":"李四","phone":"13900139000"}]}}'
+```
+
+> **不可更新字段**：`status`、`host`/`assit`（**主办/协办律师**，我方人员）、`fee_type` 等属独立业务流程，需在 OA 网页端操作，Open API 不开放。这些字段即使传入也会被忽略。
+>
+> ⚠️ **法官（承办人员）不在此列** —— 它有自己的独立参数 `judge_data`（见上）。`host`/`assit` 不可写指的是「案件层面主办/协办律师的改派」，与法官无关，别因为看到 `host` 被拦就以为法官也写不了。
 >
 > **结案 / 归档不走本端点**：`g_status` / `j_time` / `ja_status` / `g_time` / `g_user` / `g_address` 也不能通过 `PATCH /cases/{code}` 传入（传入会被忽略）。结案、归档及其取消有**独立端点**：`POST /cases/{code}/close` 与 `POST /cases/{code}/archive`（见上文），且当律所开启对应审批流程时这两个端点会被拒绝。
 >
@@ -437,7 +569,7 @@ Content-Type: application/json
 | case_name | string | 否 | 案件名。留空时系统按当事人"原告名 诉 被告名"自动拼接，识别不出原被告用"类型+日期"兜底 |
 | c_num | string | 否 | 内部案号，留空系统自动按组织序号生成 |
 | anyou | string | 否 | 案由（最大 64 字） |
-| anhao | string | 否 | 案号（最大 128 字） |
+| anhao | string | 否 | 案号（最大 128 字）。**会一并写进审理程序行**（OA「案号」列读的是程序行；只写主表 OA 看不到，详见「案件程序 / 案号 的两套存储」） |
 | degree | int | 否 | 等级: 0=次要, 1=一般, 2=重要 |
 | charge_desc | string | 否 | 收费描述（最大 100 字） |
 | c_amount | number | 否 | 标的额（数字） |
@@ -445,9 +577,10 @@ Content-Type: application/json
 | fee_mark | string | 否 | 收费备注（最大 256 字） |
 | fee_subject | string | 否 | 收费标的物（最大 32 字） |
 | charge_data | string/array | 否 | **收费方式明细**（JSON 字符串或数组，**全量替换**语义，见下方「收费方式（charge_data）说明」） |
-| process_code | int | 否 | 审理程序代码（参考 GET /enums） |
+| process_code | int | 否 | 审理程序代码（参考 GET /enums）。**会一并建出审理程序行**，使 OA 的「案件程序」列有值。传了 `anhao` 但没传它 → 归到「其它」 |
 | case_mark | string | 否 | 案件备注 |
-| pr_time | string | 否 | 委托时间 (YYYY-MM-DD)，默认当天 |
+| pr_time | string | 否 | **委托时间（接案/委案日期）**，`YYYY-MM-DD`。**不传/传空 → 当天**（建案必须有值；注意与 PATCH 不同，PATCH 不允许传空，见 PATCH 的「委托时间（pr_time）」） |
+| judge_data | string/object | 否 | **法官（承办人员）录入**（契约见 PATCH /cases/{code} 的「法官/承办人员（judge_data）」，POST 与 PATCH **同一份契约**）。建案时只能传 `action: "replace"` 或 `add`（`delete` 必然报错） |
 | stage_text | string | 否 | 初始阶段文本 |
 | org_id | string | 否 | **律所拥有者专属**：目标组织 ID（hashid），把新案件归属到本所内任意子团队；不在全所集合则报错「目标组织不在本所范围」；未传默认 PAT 绑定 org。非 owner 只能传自身 org（或不传） |
 | custom_fields | string/object | 否 | 自定义字段值 JSON（契约见 PATCH /cases/{code} 的 `custom_fields` 写入说明；键支持 `cusfields_id_{hashid}` 或裸 hashid）。创建时所有必填字段（schema `required=true`）必须提供且非空 |
@@ -2090,7 +2223,6 @@ PATCH /contracts/aBcDeFgH12345678
 - GET /cases/{id}/stages
 - GET /cases/create-form (案件自定义字段 schema)
 - PUT /calendar/{id}
-- DELETE /calendar/{id}
 - GET /clients
 - GET /clients/{id}
 - GET /clients/{id}/contacts
@@ -2121,7 +2253,7 @@ PATCH /contracts/aBcDeFgH12345678
 | cases.close | 案件结案 / 取消结案 | POST /cases/{code}/close |
 | cases.archive | 案件归档 / 取消归档 | POST /cases/{code}/archive |
 | calendar.read | 查看日程和团队成员 | GET /team/members, GET /calendar |
-| calendar.write | 创建/更新/日程 | POST /calendar, PUT /calendar/{id}, DELETE /calendar/{id} |
+| calendar.write | 创建/更新日程 | POST /calendar, PUT /calendar/{id}（删除日程未对外开放：`DELETE /calendar/{id}` 路由未注册） |
 | clients.read | 查看客户信息和联系人 | GET /clients, GET /clients/{id}, GET /clients/{id}/contacts |
 | clients.write | 更新客户信息、创建客户 | PATCH /clients/{id}, GET /clients/create-form, POST /clients |
 | projects.read | 查看项目列表和详情 | GET /projects, GET /projects/{code} |
