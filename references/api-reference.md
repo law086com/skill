@@ -232,7 +232,7 @@ Scope: `cases.read`
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | charge_type / charge_type_text | int/string | 收费方式: 1定额收费 / 2风险代理 / 3计时收费 / 4计件收费 / 5免费 |
-| pay_type / pay_type_text | int/string/null | 支付方式: 1一次性支付 / 2分期支付 / 3全风险 / 4半风险 / 5不同费率 / 6单一费率 / 7不同单价 / 8同一单价；免费为 null |
+| pay_type / pay_type_text | int/string/null | 支付方式: 1一次性支付 / 2分期支付 / 3全风险 / 4半风险 / 5不同费率 / 6单一费率 / 7不同单价 / 8同一单价；免费或未选类别时为 null |
 | risk_rate_type | int/null | 风险费率基准（仅风险代理）: 1按标的额 / 2按执行回款 / 3按减损额 |
 | rate | decimal/null | 费率/比例（风险、计时-单一费率） |
 | contract_amount | decimal/null | 委托合同金额（定额） |
@@ -446,7 +446,7 @@ PATCH /cases/{code} '{"privyc_data":{"action":"replace","privyc":[{"name":"李�
 - 形态：JSON 字符串或数组，每元素 = 一种收费方式。**全量替换**——本次未包含的收费方式行会被删除；传 `[]` = 清空全部收费方式。
 - **联动矩阵**（pay_type 与金额字段按 charge_type 收口，矩阵外金额字段被忽略）：
 
-| charge_type | pay_type（必填） | 接受的金额字段 |
+| charge_type | pay_type（可选） | 接受的金额字段 |
 |---|---|---|
 | 1 定额收费 | 1一次性支付 / 2分期支付 | contract_amount 委托合同金额 |
 | 2 风险代理 | 3全风险 / 4半风险 | rate + risk_rate_type(1按标的额/2按执行回款/3按减损额)；risk_rate_type=2→yg_zx_amount；=3→yg_js_amount；pay_type=4→fixed_amount |
@@ -455,6 +455,7 @@ PATCH /cases/{code} '{"privyc_data":{"action":"replace","privyc":[{"name":"李�
 | 5 免费 | （不传） | （不传） |
 
 - 校验：同批 charge_type 不得重复；金额须 ≥0；`charge_data` 为空数组是**显式清空**（与"不传"不同）；失败整单拒绝零写入（与主表/法官/当事人/自定义字段同事务回滚）。
+- **pay_type 可选**（对齐 OA 手工建案/Excel 导入：只选收费方式、类别金额留空）：未提供 → 该行仅落 charge_type 与非门控金额字段（定额 `contract_amount`、风险 `rate`+`risk_rate_type` 及预估额、计时/计件 `fixed_amount` 仍可提供）；pay 门控字段（风险 `fixed_amount`、计时 `rate`、计件 `unit_price`）被静默忽略。**用户没给的收费类别/金额不要编造**——留空即可，用户可在 OA 网页端补选。行内全量替换：同类型重提交不带 `pay_type` 会把旧类别清回未定（`risk_rate_type` 同理）。
 - **主表冗余字段（c_amount/w_fee/charge_desc/fee_mark/fee_subject）走独立参数**，不随 charge_data 双写。
 
 **示例**：

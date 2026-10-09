@@ -1,6 +1,6 @@
 ---
 name: law086
-version: 2.7.0
+version: 2.8.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
 description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
@@ -276,7 +276,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 **自动生成（客户端不要传）**：`case_code`、`c_num`（留空按组织序号生成）、案件名（未传 `case_name` 时按"原告名 诉 被告名"拼接，识别不出原被告用"类型+日期"兜底）、主办律师（自动写入 related_worker = PAT 调用者）。
 
-**批量导入（Excel/表格）常见可选字段**：`pr_time`（委托时间/接案日期，不传=当天）、`process_code`（案件程序）、`anhao`（案号）、`anyou`、`case_mark`、`judge_data`（法官/承办人员）、`custom_fields`（自定义字段，如"诉请""律师建议"）、`charge_data`（收费方式）。⚠️ **接案日期、法官、案件程序、案号在 Open API 都有原生落点**（`pr_time` / `judge_data` / `process_code` / `anhao`），不要去建自定义字段代替 —— 自定义字段不参与 OA 的办理天数、统计、「承办人员」列以及「案件程序/案号」列。已存在的老案件要补录这些字段，用 `PATCH /cases/{code}`（见下方「法官/承办人员（judge_data）与委托时间（pr_time）」与「案件程序 / 案号：两套存储」）。
+**批量导入（Excel/表格）常见可选字段**：`pr_time`（委托时间/接案日期，不传=当天）、`process_code`（案件程序）、`anhao`（案号）、`anyou`、`case_mark`、`judge_data`（法官/承办人员）、`custom_fields`（自定义字段，如"诉请""律师建议"）、`charge_data`（收费方式）。⚠️ **接案日期、法官、案件程序、案号在 Open API 都有原生落点**（`pr_time` / `judge_data` / `process_code` / `anhao`），不要去建自定义字段代替 —— 自定义字段不参与 OA 的办理天数、统计、「承办人员」列以及「案件程序/案号」列。已存在的老案件要补录这些字段，用 `PATCH /cases/{code}`（见下方「法官/承办人员（judge_data）与委托时间（pr_time）」与「案件程序 / 案号：两套存储」）。⚠️ **收费方式 `charge_data` 只给类型即可**（如"风险代理"→ `[{"charge_type":2}]`）：`pay_type`（收费类别）和金额都是可选的，**用户没给的类别/金额不要自行编造**，留空由用户在 OA 补选；同类型重提交不带 `pay_type` 会把类别清回未定。
 
 **关键**：当事人原被告关系决定自动生成的案件名拼接，尽量引导用户指明谁是原告/委托方（type=1）、谁是被告/对方（type=2）。
 
