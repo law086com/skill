@@ -840,7 +840,7 @@ Scope: `cases.write`
 **文件限制**:
 - 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
 - 文件大小: 最大 10MB
-- 文件名: 最大 128 字符
+- 文件名: 最大 128 字符（服务端兼容 `filename*=UTF-8''%XX` 编码形态，自动解码为原始文件名落库）
 - 超出限制时返回错误提示，建议到 OA 网页端上传
 
 **成功响应**:
