@@ -174,11 +174,13 @@ def make_request(method, base_url, token, path, body=None):
 
 
 def make_upload_request(method, base_url, token, path, file_path, extra_fields=None):
-    """发送 multipart/form-data 上传文件请求并返回格式化的响应"""
+    """OSS 直传两步流上传文件：
+    ① POST {path}/policy 签发上传凭证（服务端校验：访问控制/文件名/大小分层/限额）
+    ② multipart POST 到 OSS host 直传文件（字节不过业务服务器，nginx/PHP 大小限制不适用），
+       OSS 把回调落库结果透传回来（{code, msg, data}）
+    """
     if not path.startswith('/'):
         path = '/'
-
-    url = base_url + path
 
     if not os.path.exists(file_path):
         return {'code': -1, 'msg': '文件不存在: {}'.format(file_path)}
@@ -186,10 +188,45 @@ def make_upload_request(method, base_url, token, path, file_path, extra_fields=N
     file_name = os.path.basename(file_path)
     file_size = os.path.getsize(file_path)
 
-    # 10MB 限制提示
-    if file_size > 10 * 1024 * 1024:
-        return {'code': -1, 'msg': '文件大小超过10MB限制，请到 OA 网页端上传'}
+    # 全局上限提示（基础版 10M / 付费版 100M 由服务端 policy 判定，本地只挡 100M 硬顶）
+    if file_size > 100 * 1024 * 1024:
+        return {'code': -1, 'msg': '文件大小超过100MB上限（付费版最大 100MB、基础版 10MB）'}
 
+    # ① 签发凭证（extra_fields 里的 folder_id/record_id 一并带入）
+    policy_body = {'file_name': file_name, 'size': file_size}
+    for k in ('folder_id', 'record_id'):
+        if extra_fields and k in extra_fields:
+            policy_body[k] = extra_fields[k]
+
+    policy_req = Request(
+        base_url + path.rstrip('/') + '/policy',
+        data=json.dumps(policy_body).encode('utf-8'),
+        headers={'Authorization': 'Bearer {}'.format(token), 'Content-Type': 'application/json'},
+    )
+    policy_req.method = 'POST'
+
+    try:
+        resp = urlopen(policy_req, timeout=30)
+        policy = json.loads(resp.read().decode('utf-8'))
+    except HTTPError as e:
+        try:
+            err = json.loads(e.read().decode('utf-8'))
+            return {'code': err.get('code', -1), 'msg': err.get('msg', '凭证签发失败'), 'http_status': e.code}
+        except Exception:
+            return {'code': -1, 'msg': '凭证签发失败: HTTP {}'.format(e.code), 'http_status': e.code}
+    except Exception as e:
+        return {'code': -1, 'msg': '凭证签发请求异常: {}'.format(str(e))}
+
+    if policy.get('code') != 0:
+        return policy
+
+    cfg = policy.get('data') or {}
+    for field in ('host', 'key', 'policy', 'signature', 'accessid', 'callback'):
+        if not cfg.get(field):
+            return {'code': -1, 'msg': '上传凭证字段缺失: {}'.format(field)}
+
+    # ② 直传 OSS（PostObject 协议：表单域顺序无关但 file 必须最后；
+    #    callback-var 的每个变量按协议拆成独立 x:xxx 表单域）
     content_type, _ = mimetypes.guess_type(file_path)
     if not content_type:
         content_type = 'application/octet-stream'
@@ -197,15 +234,22 @@ def make_upload_request(method, base_url, token, path, file_path, extra_fields=N
     boundary = uuid.uuid4().hex
     lines = []
 
-    # 添加额外字段
-    if extra_fields:
-        for key, value in extra_fields.items():
-            lines.append('--{}'.format(boundary))
-            lines.append('Content-Disposition: form-data; name="{}"'.format(key))
-            lines.append('')
-            lines.append(str(value))
+    def add_field(name, value):
+        lines.append('--{}'.format(boundary))
+        lines.append('Content-Disposition: form-data; name="{}"'.format(name))
+        lines.append('')
+        lines.append(str(value))
 
-    # 添加文件字段
+    add_field('key', cfg['key'])
+    add_field('policy', cfg['policy'])
+    add_field('OSSAccessKeyId', cfg['accessid'])
+    add_field('success_action_status', '200')
+    add_field('signature', cfg['signature'])
+    add_field('callback', cfg['callback'])
+    for var_name, var_value in (cfg.get('callback-var') or {}).items():
+        add_field(var_name, var_value)
+
+    # 文件域必须在最后
     lines.append('--{}'.format(boundary))
     lines.append('Content-Disposition: form-data; name="file"; filename="{}"'.format(file_name))
     lines.append('Content-Type: {}'.format(content_type))
@@ -218,40 +262,41 @@ def make_upload_request(method, base_url, token, path, file_path, extra_fields=N
     with open(file_path, 'rb') as f:
         body = body_prefix + f.read() + body_suffix
 
-    headers = {
-        'Authorization': 'Bearer {}'.format(token),
+    oss_req = Request(cfg['host'], data=body, headers={
         'Content-Type': 'multipart/form-data; boundary={}'.format(boundary),
-    }
-
-    req = Request(url, data=body, headers=headers)
-    req.method = 'POST'
+    })
+    oss_req.method = 'POST'
 
     try:
-        response = urlopen(req, timeout=60)
-        resp_bytes = response.read()
-        encoding = response.headers.get_content_charset() or 'utf-8'
-        resp_text = resp_bytes.decode(encoding)
-
+        response = urlopen(oss_req, timeout=300)
+        resp_text = response.read().decode('utf-8', errors='replace')
         try:
-            resp_json = json.loads(resp_text)
+            # OSS 透传回调端点的响应体（{code,msg,data}，code=0 即落库成功）
+            return json.loads(resp_text)
         except (json.JSONDecodeError, ValueError):
-            return {'code': -1, 'msg': '响应非 JSON', 'raw': resp_text[:500]}
-
-        return resp_json
+            return {'code': -1, 'msg': 'OSS 响应非 JSON', 'raw': resp_text[:500]}
 
     except HTTPError as e:
-        body_text = ''
+        oss_err = ''
         try:
-            body_text = e.read().decode('utf-8', errors='replace')[:500]
+            oss_err = e.read().decode('utf-8', errors='replace')[:500]
         except Exception:
             pass
-
-        if e.code == 401:
-            return {'code': 2, 'msg': 'Token 无效或已过期，请重新生成 PAT', 'http_status': e.code}
-        elif e.code == 403:
-            return {'code': 3, 'msg': '权限不足，请检查 PAT 的 scope 设置', 'http_status': e.code}
-        else:
-            return {'code': -1, 'msg': 'HTTP {} 错误'.format(e.code), 'http_status': e.code, 'detail': body_text}
+        # OSS 层错误为 XML（如 EntityTooLarge：绕过声明 size 直传超限文件）
+        import re as _re
+        code_m = _re.search(r'<Code>([^<]+)</Code>', oss_err)
+        oss_code = code_m.group(1) if code_m else 'HTTP {}'.format(e.code)
+        friendly = {
+            'EntityTooLarge': '文件大小超过限制（基础版 10MB / 付费版 100MB），请到 OA 网页端上传或压缩文件',
+            'AccessDenied': 'OSS 拒绝访问（凭证可能已过期，请重试）',
+            'CallbackFailed': '文件已上传但服务器回调失败，请到 OA 核对是否落库后再决定是否重试',
+        }.get(oss_code)
+        return {
+            'code': -1,
+            'msg': friendly or 'OSS 上传失败: {}'.format(oss_code),
+            'oss_code': oss_code,
+            'detail': oss_err,
+        }
 
     except URLError as e:
         return {'code': -1, 'msg': '网络错误: {}'.format(str(e.reason))}

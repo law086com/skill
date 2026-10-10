@@ -821,54 +821,52 @@ POST /cases/aBcDeFgH12345678/archive
 
 > 案件附件管理，支持上传、列表和获取文件链接。文件存储在阿里云 OSS。
 
-### POST /cases/{code}/files - 上传文件到案件
+### 上传文件到案件（OSS 直传，推荐）
 
 Scope: `cases.write`
 
-使用 `multipart/form-data` 上传文件。`file` 字段为必填的文件内容。
+**两步直传流**——文件字节直传阿里云 OSS，不经过业务服务器（无 nginx/PHP 大小限制；上限由版本分层：**基础版 10MB / 付费版（有效期内）100MB**，OSS `content-length-range` 硬卡）。`api.py UPLOAD` 已内置此流程，优先使用：
+
+```
+python3 scripts/api.py UPLOAD /cases/ABC123/files /path/to/file.pdf '{"folder_id":"J3GGbB3j"}'
+```
 
 > **律所拥有者可跨子团队上传**：owner 的 PAT 可对全所任意案件上传附件（保留案件自身 org_id）。非 owner 只能上传到本 org 且自己参与的案件。
 
-**请求参数** (multipart/form-data):
+**第一步：签发上传凭证** `POST /cases/{code}/files/policy`（JSON body）：
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| file | file | 是 | 上传的文件 |
-| folder_id | string/int | 否 | 目标文件夹 ID（**hashid**，来自 `GET /cases/{code}/folders` 的 `id`；纯数字 int 也接受）。默认 0 = 根目录。**传了不属于该案件的 id → `文件夹不存在或不属于该案件`，文件不上传** |
+| file_name | string | 是 | 原始文件名（含扩展名；`UTF-8''%XX` 编码形态自动解码）。须带主文件名（不能只有扩展名）且 ≤128 字符；扩展名须在白名单 `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv` |
+| size | int | 是 | 文件字节数（预检分层上限） |
+| folder_id | string/int | 否 | 目标文件夹 ID（hashid 或纯数字）。默认 0 = 根目录。不属于该案件的 id → `文件夹不存在或不属于该案件`，不签发凭证 |
 | record_id | int | 否 | 关联记录 ID，默认 0 |
 
-**文件限制**:
-- 允许的文件类型: `jpg,jpeg,bmp,png,rar,zip,7z,doc,docx,rtf,txt,xls,xlsx,pdf,mp3,m4a,ppt,pptx,eml,csv`
-- 文件大小: 最大 10MB
-- 文件名: 最大 128 字符（服务端兼容 `filename*=UTF-8''%XX` 编码形态，自动解码为原始文件名落库）
-- 超出限制时返回错误提示，建议到 OA 网页端上传
+响应 `data`：`{host, key, policy, signature, accessid, callback, callback-var, dir, expire, max_size}`——`key` 为服务端生成的对象键（原样使用），`max_size` 为本次上限字节数，`expire` 300 秒。
 
-**成功响应**:
+**第二步：multipart POST 到 `{host}`（OSS PostObject 协议）**，表单域：`key`（原样回传）/ `policy` / `OSSAccessKeyId`（= accessid）/ `signature` / `success_action_status=200` / `callback` / `callback-var` 的**每个变量拆成独立 `x:变量名` 表单域** / `file`（文件内容，**必须放最后**）。成功响应即服务器回调落库结果的透传：`{"code":0,"msg":"上传成功","data":{"id","file_name","ext","size","save_path"}}`。
 
-```json
-{
-  "code": 0,
-  "msg": "提交成功",
-  "data": {
-    "id": "J3GGbB3j",
-    "file_name": "合同扫描件",
-    "ext": "pdf",
-    "save_path": "/uploads/cfile/20260609/abc123.pdf",
-    "file_url": "https://law086com.oss-cn-hangzhou.aliyuncs.com/uploads/cfile/20260609/abc123.pdf"
-  }
-}
-```
+OSS 层错误为 XML：`EntityTooLarge`（绕过声明 size 直传超限文件）→ 文件超上限；`CallbackFailed` → 文件已上传但落库回调失败，到 OA 核对后再决定是否重试。
 
-**错误响应**:
+**策略端错误响应**（同代理端点口径）：
 
 | 错误消息 | 说明 |
 |---------|------|
 | 案件不存在或无权限访问 | case_code 无效或无权操作该案件 |
-| 请选择要上传的文件 | 未提供 file 字段 |
-| 文件大小超过10MB限制，请到 OA 网页端上传 | 文件超过 10MB |
-| 该文件类型不支持上传，请到 OA 网页端上传 | 扩展名不在白名单中 |
+| size 必须是正整数（文件字节数） | size 缺失/非法 |
+| 请提供 file_name（原始文件名，含扩展名） | file_name 缺失 |
+| 该文件类型不支持上传，请到 OA 网页端上传 | 扩展名不在白名单 |
 | 文件名称超过128字符限制，请到 OA 网页端上传 | 文件名过长 |
-| 文件名无效：缺少主文件名（文件名不能只有扩展名，如 .docx），请重命名后重新上传 | 原始文件名只有扩展名（如 `.docx`），落库会导致 OA 端文件名显示为空 |
+| 文件名无效：缺少主文件名（文件名不能只有扩展名，如 .docx），请重命名后重新上传 | 文件名只有扩展名 |
+| 文件大小超过10MB/100MB限制，请到 OA 网页端上传 | 声明 size 超过版本分层上限 |
+| 今日上传文件数已达上限（N个），请到 OA 网页端上传 | 基础 10/天、其他 100/天（回调侧真实计数） |
+| 文件夹不存在或不属于该案件 | folder_id 非法 |
+
+### POST /cases/{code}/files - 上传文件到案件（兼容代理路径）
+
+Scope: `cases.write`
+
+经服务器代理转传 OSS 的旧路径，**受服务器网关大小限制（约 1MB）**，仅作兼容保留——新上传一律走上方直传两步流。请求/响应契约不变（multipart `file` + `folder_id`/`record_id`，限制与错误同策略端点口径，上限均一 10MB）。
 
 ### GET /cases/{code}/files - 案件附件列表
 
@@ -898,7 +896,7 @@ Scope：`cases.read`
 
 排序 `parent asc, id asc`（同层稳定）。无文件夹时 `data: []`。
 
-> **上传到指定文件夹的正确流程**：用户说"把这份证据传到『证据材料』文件夹"时——① `GET /cases/{code}/folders` 按名匹配（含子文件夹，用 parent_id 判断层级）→ ② `POST /cases/{code}/files` 带 `folder_id=<该 id>`。**不要先传根目录再让用户手动拖**；文件名匹配不到时与用户确认文件夹名或引导其在 OA 端先建文件夹（API 不支持建文件夹）。
+> **上传到指定文件夹的正确流程**：用户说"把这份证据传到『证据材料』文件夹"时——① `GET /cases/{code}/folders` 按名匹配（含子文件夹，用 parent_id 判断层级）→ ② `api.py UPLOAD /cases/{code}/files <文件> '{"folder_id":"<该 id>"}'`（直传两步流，folder_id 随 policy 一并校验）。**不要先传根目录再让用户手动拖**；文件名匹配不到时与用户确认文件夹名或引导其在 OA 端先建文件夹（API 不支持建文件夹）。
 >
 > **存量整理**：已上传的文件挪夹用 `PATCH /cases/{code}/files/{fileId}`；文件夹改名/移动用 `PATCH /cases/{code}/folders/{folderId}`（见下两节）。
 >

@@ -1,6 +1,6 @@
 ---
 name: law086
-version: 2.10.0
+version: 2.11.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
 description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
@@ -91,7 +91,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | POST | /cases/{code}/close | 案件结案 / 取消结案（可选 j_time/ja_status/suc_amount；**显式传 null 即取消结案**）⚠️ 律所开启结案审批时不可用 |
 | POST | /cases/{code}/archive | 案件归档 / 取消归档（可选 g_time/g_user/g_address；**显式传 null 即取消归档，三字段一并清空**）⚠️ 律所开启归档审批时不可用 |
 | GET | /cases/{code}/stages | 案件阶段列表 |
-| POST | /cases/{code}/files | 上传文件到案件（multipart/form-data） |
+| POST | /cases/{code}/files | 上传文件到案件（用 `api.py UPLOAD`：OSS 直传两步流，基础版 10MB / 付费版 100MB；手工 multipart 代理路径受网关 ≈1M 限制仅作兼容） |
 | GET | /cases/{code}/files | 案件附件列表（支持 folder_id 筛选） |
 | GET | /cases/{code}/folders | 案件文件夹列表（id/name/parent_id；上传直传目标文件夹前先查） |
 | PATCH | /cases/{code}/folders/{folderId} | 重命名/移动文件夹（name / parent_id 可单传可同传；parent_id=0 移根；防环） |
@@ -428,7 +428,7 @@ PATCH /cases/ABC123 '{"related_process_id":"<二审那条的 id>","anhao":"(2026
 
 AI Agent 可以为案件上传文件、查看附件列表、获取文件访问链接。
 
-**上传文件**：使用 `POST /cases/{code}/files`，发送 `multipart/form-data`，包含 `file` 字段（文件本身）。⚠️ **上传的本地文件必须带主文件名，不能只有扩展名**（`.docx` 这类名字会被服务端拒绝——落库后 OA 里文件名会显示为空）；生成临时文件时就用「内容名.扩展名」命名。可选参数：
+**上传文件**：用 `api.py UPLOAD /cases/{code}/files <文件路径>` —— 已内置 **OSS 直传两步流**（先签发凭证再直传，文件字节不过服务器，**支持大文件：基础版 10MB / 付费版 100MB**；旧的 multipart 代理路径受网关限制仅约 1MB，勿手搓）。⚠️ **上传的本地文件必须带主文件名，不能只有扩展名**（`.docx` 这类名字会被服务端拒绝）；生成临时文件时就用「内容名.扩展名」命名；用户没说目标文件夹就传根目录（folder_id=0）。可选参数：
 - `folder_id`（hashid）— **上传到指定文件夹**。用户说"传到『证据材料』文件夹"时：先 `GET /cases/{code}/folders` 按名匹配拿 id，再直传；**不要传根目录（0）后让用户手动拖**。匹配不到时与用户确认名称或引导其在 OA 端建文件夹（API 不能建夹）
 - `record_id`（hashid）— 关联到指定日程/办案记录，文件在日程详情中可见
 
