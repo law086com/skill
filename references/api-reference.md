@@ -866,7 +866,7 @@ OSS 层错误为 XML：`EntityTooLarge`（绕过声明 size 直传超限文件�
 
 Scope: `cases.write`
 
-经服务器代理转传 OSS 的旧路径，**受服务器网关大小限制（约 1MB）**，仅作兼容保留——新上传一律走上方直传两步流。请求/响应契约不变（multipart `file` + `folder_id`/`record_id`，限制与错误同策略端点口径，上限均一 10MB）。
+经服务器代理转传 OSS 的旧路径，仅作兼容保留——新上传一律走上方直传两步流。代理路径大小上限**按环境不同**：**生产 open.law086.com 实测生效上限 = 应用层 10MB**（宿主 nginx / PHP ini 均放行 ≥11MB，2026-11-09 探测实证）；**测试环境 open.ineedtm.com ≈1MB**（宿主 nginx `client_max_body_size` 默认 1m，≥1M 直接 413，到不了应用）。请求/响应契约不变（multipart `file` + `folder_id`/`record_id`，限制与错误同策略端点口径，上限均一 10MB）。
 
 ### GET /cases/{code}/files - 案件附件列表
 
