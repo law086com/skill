@@ -1,11 +1,11 @@
 ---
 name: law086
-version: 2.11.1
+version: 2.12.0
 display_name: 案件云-律师案件日程团队管理
 display_name_en: Law086 AI Assistant
-description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
-description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, update the engagement/filing date, read and write the case proceeding and case number, read and write judges (court handlers), read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, view finance records and receivables, manage payment records, generate document templates, and query, add, and update contracts.'
-description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录和应收款、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"收费方式"、"风险代理"、"按风险代理收费"、"上诉人"、"被上诉人"、"申请执行人"、"被执行人"、"委托方属性"、"自定义字段"、"法官"、"承办法官"、"承办人"、"承办人员"、"审判长"、"接案日期"、"委案日期"、"委托时间"、"立案日期"、"案号"、"案件程序"、"审理程序"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
+description_zh: '让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录/应收款/费用支出/收入分配/收支流水/财务统计分析与单业务财务概览（仅团队版/律所版拥有者）、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。'
+description_en: 'Let lawyers operate Case Cloud (law086) through natural language: query case lists and details, create cases, update case progress and status, update the engagement/filing date, read and write the case proceeding and case number, read and write judges (court handlers), read and write case custom fields, close and archive cases (including undo), manage schedules and case records, view and update client information, create clients, view project information, create projects, query finance records, receivables, expenses, income distributions, fundflow, finance analytics and business overviews (team/firm owner only), manage payment records, generate document templates, and query, add, and update contracts.'
+description: 案件云(law086) AI集成。让律师通过自然语言操作案件云：查询案件列表和详情、创建案件、更新案件进度和状态、更新委托时间（接案/委案日期）、读写案件程序与案号、读写法官（承办人员）信息、读写案件自定义字段、案件结案与归档（含取消）、管理日程和办案记录（含录传票/开庭时间）、查看和更新客户信息、创建客户、查看项目信息、创建项目、查看财务记录/应收款/费用支出/收入分配/收支流水/财务统计分析与单业务财务概览（仅团队版/律所版拥有者）、收款记录管理、生成文书模板、查询合同、新增合同、更新合同。当用户说"查询案件"、"我的案件"、"创建案件"、"新建案件"、"登记案件"、"录入案件"、"更新案件状态"、"收费方式"、"风险代理"、"按风险代理收费"、"上诉人"、"被上诉人"、"申请执行人"、"被执行人"、"委托方属性"、"自定义字段"、"法官"、"承办法官"、"承办人"、"承办人员"、"审判长"、"接案日期"、"委案日期"、"委托时间"、"立案日期"、"案号"、"案件程序"、"审理程序"、"结案"、"案件结案"、"归档"、"案件归档"、"取消结案"、"取消归档"、"查看日程"、"创建日程"、"查看财务"、"案件云"、"帮我查案件"、"今天有什么安排"、"帮我记录"、"办案记录"、"记录一下"、"添加记录"、"创建办案记录"、"传票"、"开庭"、"开庭时间"、"开庭日期"、"查看客户"、"更新客户"、"创建客户"、"新增客户"、"查看项目"、"创建项目"、"新增项目"、"团队日程"、"应收款"、"收款"、"收款记录"、"未收款"、"待收款"、"已收款"、"逾期"、"应收款汇总"、"财务摘要"、"今年应收"、"今年收款"、"费用支出"、"支出记录"、"成本"、"待报销"、"已报销"、"收入分配"、"提成"、"律师提成"、"待分配"、"收支流水"、"流水"、"财务统计"、"财务分析"、"创收排行"、"收支趋势"、"财务概览"、"案件财务"、"审批已通过"、"查看合同"、"合同列表"、"我的合同"、"新增合同"、"创建合同"、"更新合同"、"合同信息"、"上传文件"、"上传附件"、"案件文件"、"案件附件"、"查看文件"、"下载文件"、"预览文件"时触发此技能。
 
 
 ---
@@ -112,13 +112,20 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 | GET | /projects/create-form | 获取项目创建表单 schema |
 | POST | /projects | 创建项目 |
 | PATCH | /projects/{code} | 更新项目 |
-| GET | /finance | 财务记录（高阶版以上） |
-| GET | /finance/receivables | 应收款列表（全量返回，支持多维筛选） |
-| GET | /finance/receivables/{id} | 应收款详情（含收款记录、案件/客户信息） |
-| GET | /finance/receiverecord | 收款记录列表（全量返回，与 OA 逻辑一致） |
-| GET | /finance/receiverecord/{id} | 收款记录详情 |
-| PUT | /finance/receiverecord/{id} | 更新收款记录 |
-| GET | /finance/summary | 财务摘要（支持按案件、日期范围筛选） |
+| GET | /finance/orgs | 可见组织/子团队列表（仅团队/律所顶层拥有者；按团队名查财务前先调此接口反查 `org_id`） |
+| GET | /finance/expenses | 费用支出列表（仅团队/律所顶层拥有者；分页只取首页 + 全量命中 `sum`；日期跨度 ≤1 年） |
+| GET | /finance/expenses/{id} | 费用支出详情（仅团队/律所顶层拥有者） |
+| GET | /finance/distributions | 收入分配列表（仅团队/律所顶层拥有者；按应收款分组分页只取首页 + 全量命中 `sum`；日期跨度 ≤1 年） |
+| GET | /finance/fundflow | 收支流水列表（仅团队/律所顶层拥有者；合并实收+支出，分页只取首页 + 全量命中 `sum`；日期跨度 ≤1 年） |
+| GET | /finance/analytics | **全量财务统计分析**（仅团队/律所顶层拥有者；一次返回汇总/占比分布 + 律师排行 + 业务排行 + 月度趋势，支持 `org_id`/`huser`/`type`/`approval_status=2`；日期跨度 ≤1 年） |
+| GET | /finance/overview | 单业务财务概览（仅团队/律所顶层拥有者；必填 `linktype`+`linkid`，项目级联案件、客户级联案件+项目；日期跨度 ≤1 年） |
+| GET | /finance | 财务记录（仅团队/律所顶层拥有者；分页只取首页；支持 `org_id`） |
+| GET | /finance/receivables | 应收款列表（仅团队/律所顶层拥有者；全量返回，支持多维筛选及 `org_id`） |
+| GET | /finance/receivables/{id} | 应收款详情（仅团队/律所顶层拥有者；含收款记录、案件/客户信息） |
+| GET | /finance/receiverecord | 收款记录列表（仅团队/律所顶层拥有者；全量返回，与 OA 逻辑一致，支持 `org_id`） |
+| GET | /finance/receiverecord/{id} | 收款记录详情（仅团队/律所顶层拥有者） |
+| PUT | /finance/receiverecord/{id} | 更新收款记录（仅团队/律所顶层拥有者） |
+| GET | /finance/summary | 财务摘要（仅团队/律所顶层拥有者；兼容简化摘要，全面分析请优先用 `GET /finance/analytics`） |
 | GET | /records/{id} | 记录详情（按ID直接查单条） |
 | GET | /contracts | 合同列表（keyword 模糊搜客户/项目名称，client_keyword/project_keyword 精确按客户/项目搜索，管理员支持 follow_uid） |
 | POST | /contracts | 创建合同（cl_id/pr_id 至少填一个） |
@@ -136,7 +143,7 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 4. 需要判断「命中几条」用响应里的 `total` 字段，**不要靠翻页计数**。
 5. 统计数量（如「我有多少在办案件」）用 `GET /dashboard` 的聚合统计，不要全量拉取后本地 count。
 
-> **注意区分「分页接口」与「全量接口」**：财务的 `GET /finance/receivables`（应收款）、`GET /finance/receiverecord`（收款记录）和合同 `GET /contracts` 是**全量返回**（不分页，一次性返回全部命中数据，靠参数筛选范围）。本节约束**只针对分页接口**（cases/clients/projects/calendar，以及 `GET /finance` 财务记录列表），与全量接口设计不矛盾——全量接口本身就没有分页可翻。
+> **注意区分「分页接口」与「全量接口」**：财务的 `GET /finance/receivables`（应收款）、`GET /finance/receiverecord`（收款记录）和合同 `GET /contracts` 是**全量返回**（不分页，一次性返回全部命中数据，靠参数筛选范围）。本节约束**只针对分页接口**（cases/clients/projects/calendar，以及 `GET /finance`、`GET /finance/expenses`、`GET /finance/distributions`、`GET /finance/fundflow`），其中新财务分页接口均已返回命中全量的 `sum` 汇总，**禁止翻页累加**。
 
 ### 日程与办案记录的关系
 
@@ -218,28 +225,40 @@ python3 scripts/api.py POST /calendar '{"title":"开庭","htime":"2026-05-10 14:
 
 始终用 `start_date`/`end_date`（YYYY-MM-DD），**禁用** `today`/`this_week`（服务端不准）。默认查本周。
 
-### 财务查询指南
+### 财务查询指南（仅团队版/律所版顶层拥有者）
 
-应收款和收款记录接口返回**全量数据**（不分页），必须通过参数筛选来限定范围：
+> ⚠️ **权限门槛**：**全部 `/finance*` 接口仅对团队版/律所版顶层拥有者开放**（独立团队拥有者、律所顶层拥有者）。个人空间、普通成员、管理员、财务角色、律所子团队负责人调用会返回 `code: 3`（「财务接口仅对团队版/律所版拥有者开放」），直接向用户如实转述即可，**不要引导非拥有者去 OA 勾选 `finance.read`**（OA 已对非拥有者隐藏该权限）。
 
-**按时间筛选**：使用 `yd_time_range`（约定收款日期）或 `ss_time_range`（实收日期），值为 JSON `{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}`，最长跨度 1 年。
+**选型口诀（少调一次是一次）**：
+- 看整体经营、收益、律师排行、业务排行、月度趋势 → **直接调一次 `GET /finance/analytics`**（一次返回 `summary` + `top_users` + `top_business` + `trend`；律所想只看审批已通过口径传 `approval_status=2`）。
+- 看某个案件/项目/客户的收支+收益+分配全貌 → `GET /finance/overview?linktype=1&linkid=...`（项目自动汇总名下案件，客户自动汇总名下案件和项目）。
+- 按子团队名称查财务（律所拥有者）→ 先 `GET /finance/orgs` 反查 `org_id`，再把 `org_id` 传入任一财务查询/分析接口；响应项的 `org_name` 标明归属团队。
+- 看费用支出 / 收入分配 / 收支流水明细 → `GET /finance/expenses` / `GET /finance/distributions` / `GET /finance/fundflow`（**标准分页只取首页 + 读响应 `sum` 汇总，禁止翻页计数**；日期跨度最长 1 年）。
+- 看应收款 / 收款记录明细 → `GET /finance/receivables` / `GET /finance/receiverecord`（全量返回，日期跨度最长 1 年）。
+
+**按时间筛选**：
+- 新端点（`expenses`/`distributions`/`fundflow`/`analytics`/`overview`）统一用 `start_date`/`end_date`（`YYYY-MM-DD`，最长跨度 1 年；也兼容 OA `time_range`/`distribute_date` JSON）。
+- 存量 `receivables`/`receiverecord` 使用 `yd_time_range`（约定收款日期）、`ss_time_range`（实收日期）、`kp_date`（开票日期），值为 JSON `{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}`，最长跨度 1 年。
 
 **常用筛选参数**：
 
 | 参数 | 说明 | 适用端点 |
 |------|------|---------|
+| `org_id` | 组织/子团队 ID（逗号分隔 hashid，先调 `GET /finance/orgs` 获取） | 全部财务列表与分析端点 |
+| `approval_status` | 律所审批口径：留空/0=全部，2=仅审批已通过（收款/开票/支出） | analytics |
+| `type` | 业务类型(0全部/1案件/2项目/3客户) / 收支类型(1收入/2支出) / 分配类型 | analytics / fundflow / distributions |
+| `payer` / `rstatus` | 承担方(1本人/2客户/3单位) / 报销状态(0无需/1待报销/2已报销) | expenses |
 | `receivable_status` | 应收款状态: 1=全部未收回, 2=部分收回, 3=全部收回 | receivables |
 | `record_status` | 收款记录状态: 1=待收款, 2=已收款 | receiverecord |
 | `overdue_status` | 过期: 1=未过期, 2=已过期 | receiverecord |
-| `link_keyword` | 关联资源名称搜索（案件/项目/客户） | receivables, receiverecord |
-| `linktype` | 关联类型: 1=案件, 2=项目, 3=客户 | receivables, receiverecord |
-| `title` | 款项名称搜索 | receivables, receiverecord |
-| `amount_ys` | 应收金额范围 | receivables, receiverecord |
-| `amount_ss` | 实收金额范围 | receivables, receiverecord |
-| `sk_uid` | 收款人 | receivables |
-| `uid` | 收款人 | receiverecord |
+| `link_keyword` | 关联资源名称搜索（案件/项目/客户） | receivables, receiverecord, expenses, distributions, fundflow |
+| `linktype` | 关联类型: 1=案件, 2=项目, 3=客户 | receivables, receiverecord, expenses, distributions, fundflow, overview |
+| `title` | 款项/费用名称搜索 | receivables, receiverecord, expenses, distributions, fundflow |
+| `amount_ys` / `amount_ss` | 应收/实收金额范围 JSON | receivables, receiverecord |
+| `amount_min` / `amount_max` | 金额区间 | expenses, distributions, fundflow |
+| `sk_uid` / `uid` / `huser` | 收款人 / 支出人 / 分配律师 / 参与律师 | receivables / receiverecord, expenses, distributions, fundflow / analytics |
 
-> **禁止使用** `year`、`status`（在 receiverecord 中无效）等不存在的参数。日期筛选**必须**用 `yd_time_range`/`ss_time_range`/`kp_date`，不接受 `start_date`/`end_date`（那是 summary 接口的参数）。
+> **禁止使用** `year`、`status`（在 receiverecord 中无效）等不存在的参数。`receivables`/`receiverecord` 不接受 `start_date`/`end_date`；新增的 `expenses`/`distributions`/`fundflow`/`analytics`/`overview` 均支持 `start_date`/`end_date` 且最长跨度 1 年。
 
 ### 团队日程
 
@@ -526,7 +545,11 @@ AI Agent 可以为案件上传文件、查看附件列表、获取文件访问�
 | "未收回的应收款" | 筛选未收回 | `GET "/finance/receivables?receivable_status=1"` |
 | "XX案件的应收款" | 按案件名称搜 | `GET "/finance/receivables?link_keyword=XX"` |
 | "应收款汇总" | 财务摘要 | `GET /finance/summary` |
-| "今年收款情况" | 摘要按日期 | `GET "/finance/summary?start_date=2026-01-01&end_date=2026-12-31"` |
+| "今年收款情况" / "今年团队财务怎么样、谁创收最多" | 全量财务统计分析 | `GET "/finance/analytics?start_date=2026-01-01&end_date=2026-12-31"`（一次返回汇总+趋势+排行；仅审批已通过加 `&approval_status=2`） |
+| "查一下华东团队今年支出和流水" | 按子团队查财务 | 先 `GET /finance/orgs` 取华东团队 `org_id` → `GET "/finance/fundflow?org_id=xxx&start_date=2026-01-01&end_date=2026-12-31"` |
+| "查一下待报销的费用支出" | 费用支出筛选 | `GET "/finance/expenses?rstatus=1"`（分页取首页，总金额看 `sum`） |
+| "今年收入分配情况 / 还有多少待分配" | 收入分配查询 | `GET "/finance/distributions?start_date=2026-01-01&end_date=2026-12-31"`（看 `sum.n_distribute_amount`） |
+| "XX案件整体财务情况怎么样" | 单业务财务概览 | 先 `GET "/cases?keyword=XX"` 取 `id` → `GET "/finance/overview?linktype=1&linkid=xxx"` |
 | "收款记录" | 收款记录列表 | `GET /finance/receiverecord` |
 | "待收款记录" | 筛选待收款 | `GET "/finance/receiverecord?record_status=1"` |
 | "已逾期的收款" | 筛选已过期 | `GET "/finance/receiverecord?overdue_status=2"` |

@@ -140,9 +140,19 @@ def make_request(method, base_url, token, path, body=None):
                 'http_status': e.code
             }
         elif e.code == 403:
+            # 优先透传服务端返回的具体 code/msg（如非拥有者拦截、无有效订阅等），回退默认提示
+            try:
+                err_json = json.loads(body_text) if body_text else {}
+            except (json.JSONDecodeError, ValueError):
+                err_json = {}
+            err_code = err_json.get('code', 3)
+            try:
+                err_code = int(err_code)
+            except (TypeError, ValueError):
+                err_code = 3
             return {
-                'code': 3,
-                'msg': '权限不足，请检查 PAT 的 scope 设置',
+                'code': err_code,
+                'msg': err_json.get('msg') or '权限不足，请检查 PAT 的 scope 设置',
                 'http_status': e.code
             }
         elif e.code == 404:

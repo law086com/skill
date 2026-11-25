@@ -81,7 +81,7 @@ cd ~/.claude/skills/law086/ && git pull
 | Clients | clients.read / clients.write | 客户列表、详情、联系人、更新客户 |
 | Records | records.read / records.write | 独立记录查看、更新（标记已办等） |
 | Projects | projects.read / projects.write | 项目列表、详情、更新 |
-| Finance | finance.read | 财务记录、应收款、摘要（高阶版） |
+| Finance | finance.read / finance.write | **仅团队版/律所版顶层拥有者开放**：应收款、收款记录、费用支出、收入分配、收支流水、全量财务统计分析（汇总/排行/趋势，含律所审批口径）、单业务财务概览、本所子团队列表；更新收款记录 |
 | Search | cases.read | 跨资源统一搜索 |
 | Enums | - | 枚举数据字典 |
 

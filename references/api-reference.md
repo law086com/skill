@@ -72,13 +72,13 @@ curl -s -X POST "{BASE}/calendar" -H "Authorization: Bearer {TOKEN}" \
 | last_page | 末页页码 |
 | next_page_url | 下一页 URL（最后一页为 null） |
 
-> **AI 使用约束（重要）**：以下列表端点为**分页接口**——`GET /cases`、`GET /clients`、`GET /projects`、`GET /calendar`、`GET /finance`、`GET /cases/{code}/files`。律师与 AI 交互时永远只看几条数据，全量翻页毫无必要，请严格遵守：
+> **AI 使用约束（重要）**：以下列表端点为**分页接口**——`GET /cases`、`GET /clients`、`GET /projects`、`GET /calendar`、`GET /finance`、`GET /finance/expenses`、`GET /finance/distributions`、`GET /finance/fundflow`、`GET /cases/{code}/files`。律师与 AI 交互时永远只看几条数据，全量翻页毫无必要，请严格遵守：
 >
-> 1. **列表查询只取第一页**（page=1，默认 limit=20），靠 `keyword`/`g_status`/`type`/日期等筛选把范围缩到用户关心的几条。
-> 2. **禁止为「列出全部」「统计总数」「逐条本地匹配」而翻完所有分页**——用户看不完，纯属浪费请求（某律师 1800+ 案件被翻 90+ 页是典型反例）。
+> 1. **列表查询只取第一页**（page=1，默认 limit=20，财务新列表最大 100），靠 `keyword`/`g_status`/`type`/日期等筛选把范围缩到用户关心的几条。
+> 2. **禁止为「列出全部」「统计总数」「逐条本地匹配」而翻完所有分页**——用户看不完，纯属浪费请求（某律师 1800+ 案件被翻 90+ 页就是典型反例）。
 > 3. 用户想要更多 → 引导其补充筛选条件（关键词、状态、类型、时间），**不要翻页**。
-> 4. 需要判断「命中几条」用响应里的 `total` 字段，**不要靠翻页计数**。
-> 5. 统计数量（如「我有多少在办案件」）用 `GET /dashboard` 的聚合统计，不要全量拉取后本地 count。
+> 4. 需要判断「命中几条」用响应里的 `total` 字段，财务汇总直接读响应里的 `sum` 字段（命中全量统计，非仅当前页），**不要靠翻页计数或手动累加**。
+> 5. 统计数量（如「我有多少在办案件」）用 `GET /dashboard` 的聚合统计；统计财务全貌/排行/趋势直接用 `GET /finance/analytics`，不要全量拉取后本地 count。
 >
 > **注意区分「分页接口」与「全量接口」**：财务的 `GET /finance/receivables`、`GET /finance/receiverecord` 以及 `GET /contracts` 是**全量返回**（不分页，设计上一次性返回全部命中数据，靠参数筛选范围）。上述「禁止翻页」约束**只针对分页接口**，与这两个全量接口的设计不矛盾——全量接口本身就没有分页可翻。
 
@@ -1636,7 +1636,166 @@ Scope: `projects.write`
 
 ## Finance 财务
 
-> **版本要求**: 高阶版及以上套餐才可使用财务相关接口。
+> **权限门槛（重要）**：**全部 `/finance*` 接口仅对团队版/律所版顶层拥有者开放**（独立团队拥有者 / 律所顶层拥有者，含存量接口与 `PUT /finance/receiverecord/{id}`）。个人空间、团队/律所管理员、财务角色、普通成员及律所下非顶层拥有者的子团队负责人调用会返回 HTTP 403（`code: 3`，`"财务接口仅对团队版/律所版拥有者开放"`），且在 OA 端 PAT 管理页不可勾选 `finance.*` scope。
+>
+> **多团队筛选与标识**：律所顶层拥有者默认查看全所（顶层 + 所有直接子团队）；全部财务列表与分析端点均支持可选参数 `org_id`（逗号分隔 hashid，按子团队筛选，越权报 `"目标组织不在本所范围"`），列表项对律所拥有者自动附带 `org_name`。按团队名查询前先调 `GET /finance/orgs` 反查 `org_id`。
+>
+> **日期跨度上限**：所有支持日期范围筛选的财务列表与分析接口，开始日期到结束日期**最长跨度 1 年**（≤366 天），超限返回 `code: 1`。
+
+### GET /finance/orgs - 可见组织/子团队列表
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+返回当前拥有者可见的组织列表（顶层 + 所有直接子团队），供按团队名反查 `org_id` 传入其他财务端点。
+
+**参数**: 无
+
+**响应 data 字段**（数组）:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 组织 ID（hashid） |
+| name | string | 组织/子团队名称 |
+| type | int | 1=团队, 2=律所 |
+| type_text | string | 组织类型文本 |
+| is_top | bool | 是否顶层组织 |
+
+### GET /finance/expenses - 费用支出列表
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+**分页接口**（默认 `limit=20`，最大 `100`）+ 返回**全量命中 `sum` 汇总**（非仅当前页）。日期跨度最长 1 年。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| org_id | string | 否 | 组织/子团队 ID（逗号分隔 hashid，仅律所全所范围内合法） |
+| linktype | string | 否 | 关联类型，逗号分隔: 1=案件, 2=项目, 3=客户 |
+| linkid | string | 否 | 关联业务 ID（hashid），配合单一 `linktype` 使用 |
+| link_keyword | string | 否 | 关联案件/项目/客户名称模糊搜索 |
+| title / keyword | string | 否 | 费用名称模糊搜索 |
+| uid | string | 否 | 支出人 UID（逗号分隔 hashid） |
+| payer | string | 否 | 承担方，逗号分隔: 1=本人, 2=客户, 3=单位 |
+| rstatus | string | 否 | 报销状态，逗号分隔: 0=无需报销, 1=待报销, 2=已报销 |
+| amount_min / amount_max | number | 否 | 金额区间 |
+| start_date / end_date | string | 否 | 发生日期 `hdate` 区间（`YYYY-MM-DD`，最长 1 年；亦兼容 `time_range` JSON） |
+| page / limit | int | 否 | 页码（默认 1）/ 每页条数（默认 20，最大 100） |
+
+**响应 data 字段**:
+
+- 标准分页字段：`data`、`current_page`、`per_page`、`total`、`last_page`
+- `sum`（全量命中汇总）：`amount`（总支出）、`client_amount`（客户承担）、`actual_cost`（实际成本）、`wait_reimburse`（待报销）、`done_reimburse`（已报销）
+- `data[]` 列表项：`id`、`org_id`、`org_name`（仅律所拥有者）、`linktype`/`linktype_text`、`linkid`/`linkid_text`/`linkid_info`、`title`、`amount`、`hdate`、`payer`/`payer_text`、`rstatus`/`rstatus_text`、`uid`/`uid_text`、`remark`、`firm_apply`（`feid_code`/`feid_status`/`feid_status_text`）、`created_at`
+
+### GET /finance/expenses/{id} - 费用支出详情
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+**参数**: 路径参数 `id`（hashid，必填）
+
+**响应**: 返回单条费用支出完整字段（同列表项结构）。
+
+### GET /finance/distributions - 收入分配列表
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+按应收款分组返回分配明细（对齐 OA `receiptDistributions/index`）。**分页接口**（默认 `limit=20`，最大 `100`）+ **全量命中 `sum` 汇总**。日期跨度最长 1 年。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| org_id | string | 否 | 组织/子团队 ID（逗号分隔 hashid） |
+| receivable_id | string | 否 | 应收款 ID（hashid） |
+| linktype | string | 否 | 关联类型，逗号分隔: 1=案件, 2=项目, 3=客户 |
+| linkid | string | 否 | 关联业务 ID（hashid），配合单一 `linktype` 使用 |
+| link_keyword | string | 否 | 关联业务名称搜索 |
+| title / keyword | string | 否 | 应收款项名称搜索 |
+| type | string | 否 | 分配类型模糊搜索（如 `律师提成费`/`律所管理费`/`其他`） |
+| uid | string | 否 | 分配律师 UID（逗号分隔 hashid） |
+| amount_min / amount_max | number | 否 | 分配金额区间 |
+| start_date / end_date | string | 否 | 分配日期区间（`YYYY-MM-DD`，最长 1 年；亦兼容 `distribute_date` JSON） |
+| page / limit | int | 否 | 页码（默认 1）/ 每页条数（默认 20，最大 100） |
+
+**响应 data 字段**:
+
+- 标准分页字段：`data`、`current_page`、`per_page`、`total`、`last_page`
+- `sum`（全量命中汇总）：`r_amount`（应收金额）、`effective_amount`（可分配金额）、`distribute_amount`（已分配金额）、`n_distribute_amount`（待分配金额）
+- `data[]` 分组项：`receivable_id`、`org_id`、`org_name`（仅律所拥有者）、`linktype`/`linktype_text`、`linkid`/`linkid_text`/`linkid_info`、`title`、`r_amount`、`effective_amount`、`distribute_amount`、`n_distribute_amount`、`distributions[]`（`id`/`type`/`uid`/`uid_text`/`amount`/`ratio`/`distribute_date`/`remark`）
+
+### GET /finance/fundflow - 收支流水列表
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+合并展示实收记录（收入）与费用支出（支出），按发生日期倒序。**分页接口**（默认 `limit=20`，最大 `100`）+ **全量命中 `sum` 汇总**。日期跨度最长 1 年。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| org_id | string | 否 | 组织/子团队 ID（逗号分隔 hashid） |
+| type | string | 否 | 收支类型，逗号分隔: 1=收入, 2=支出（默认全部） |
+| linktype | string | 否 | 关联类型，逗号分隔: 1=案件, 2=项目, 3=客户 |
+| linkid | string | 否 | 关联业务 ID（hashid），配合单一 `linktype` 使用 |
+| link_keyword | string | 否 | 关联业务名称搜索 |
+| title / keyword | string | 否 | 款项/费用名称搜索 |
+| uid | string | 否 | 收款人/支出人 UID（逗号分隔 hashid） |
+| amount_min / amount_max | number | 否 | 金额区间 |
+| start_date / end_date | string | 否 | 发生日期区间（`YYYY-MM-DD`，最长 1 年；亦兼容 `time_range` JSON） |
+| page / limit | int | 否 | 页码（默认 1）/ 每页条数（默认 20，最大 100） |
+
+**响应 data 字段**:
+
+- 标准分页字段：`data`、`current_page`、`per_page`、`total`、`last_page`
+- `sum`（全量命中汇总）：`income`（总收入）、`expense`（总支出）、`net`（净流入 = 收入 - 支出）
+- `data[]` 列表项：`id`、`type`（1收入/2支出）、`type_text`、`title`、`amount`、`hdate`、`uid`/`uid_text`、`org_id`、`org_name`（仅律所拥有者）、`linktype`/`linktype_text`、`linkid`/`linkid_text`/`linkid_info`、`receivable_id`（仅收入）
+
+### GET /finance/analytics - 全量财务统计分析
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+**一次调用**聚合返回 OA 财务统计四大板块（汇总指标与占比分布 + 律师收支排行 + 业务收支排行 + 月度收支趋势），减少 AI 多轮调用。日期跨度最长 1 年。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| start_date / end_date | string | 否 | 统计日期区间（`YYYY-MM-DD`，最长 1 年；缺省时趋势默认近 12 个月） |
+| org_id | string | 否 | 组织/子团队 ID（逗号分隔 hashid） |
+| huser / uid | string | 否 | 按参与律师筛选（逗号分隔 hashid） |
+| type | int | 否 | 业务类型: 0=全部(默认), 1=案件, 2=项目, 3=客户 |
+| approval_status | int | 否 | **律所审批口径**：留空/0=全部（默认）；`2`=仅统计审批已通过的记录（收款 `firmreciept.status=1`、开票 `firmbill.status=2`、支出 `firmexpense.status=2`；应收不受影响） |
+| top_limit | int | 否 | 排行条数，默认 10，最大 20 |
+
+**响应 data 字段**:
+
+- `summary`：`yd_amount`（约定/应收）、`ds_amount`（待收）、`ys_amount`（已收）、`kp_amount`（开票）、`total_expense`（总支出）、`client_expense`（客户承担）、`wait_reimburse`（待报销）、`done_reimburse`（已报销）、`actual_cost`（实际成本）、`service_profit`（服务收益）、`booked_profit`（入账收益）、`expense_distribution`（支出分布 Top10）、`payer_distribution`（成本承担分布）、`reimbursed_distribution`（已报销费用分布）、`income_distribution`（收益分布 Top10）
+- `top_users`：`income[]`、`expense[]`（每项 `{uid, name, amount}`）
+- `top_business`：`income[]`、`expense[]`（每项 `{linktype, linktype_text, id, code, name, amount}`）
+- `trend`：月度数组 `[{month, income, expense, net}]`
+- `filters`：本次实际生效的筛选条件回显
+
+### GET /finance/overview - 单业务财务概览
+
+Scope: `finance.read`（仅团队版/律所版顶层拥有者）
+
+按单个案件/项目/客户查询完整财务概览（对齐 OA `GET /oa/finance`）。**级联口径**：项目自动汇总名下关联案件；客户自动汇总名下关联案件与项目。日期跨度最长 1 年。
+
+**参数**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| linktype | int | 是 | 关联类型: 1=案件, 2=项目, 3=客户 |
+| linkid | string | 是 | 关联业务 ID（hashid） |
+| start_date / end_date | string | 否 | 日期区间（`YYYY-MM-DD`，最长 1 年） |
+
+**响应 data 字段**:
+
+- `link_info`：`{linktype, linktype_text, id, name, code, org_id, org_name?}`
+- 收支与收益：`yd_amount`、`ys_amount`、`ds_amount`、`kp_amount`、`total_expense`、`client_expense`、`actual_cost`、`wait_reimburse`、`done_reimburse`、`service_profit`、`booked_profit`
+- 分配汇总：`effective_amount`（可分配）、`distribute_amount`（已分配）、`n_distribute_amount`（待分配）
+- 占比分布：`expense_by_title`、`expense_by_payer`、`income_by_title`、`distribution_by_type`
 
 ### GET /finance - 财务记录列表
 
@@ -2258,8 +2417,8 @@ PATCH /contracts/aBcDeFgH12345678
 | clients.write | 更新客户信息、创建客户 | PATCH /clients/{id}, GET /clients/create-form, POST /clients |
 | projects.read | 查看项目列表和详情 | GET /projects, GET /projects/{code} |
 | projects.write | 更新项目信息、创建项目 | PATCH /projects/{code}, GET /projects/create-form, POST /projects |
-| finance.read | 查看财务记录和摘要 | GET /finance, GET /finance/{id}, GET /finance/receivables, GET /finance/receivables/{id}, GET /finance/receiverecord, GET /finance/receiverecord/{id}, GET /finance/summary |
-| finance.write | 更新收款记录 | PUT /finance/receiverecord/{id} |
+| finance.read | 查看财务数据（仅团队版/律所版顶层拥有者） | GET /finance/orgs, GET /finance/expenses, GET /finance/expenses/{id}, GET /finance/distributions, GET /finance/fundflow, GET /finance/analytics, GET /finance/overview, GET /finance, GET /finance/{id}, GET /finance/receivables, GET /finance/receivables/{id}, GET /finance/receiverecord, GET /finance/receiverecord/{id}, GET /finance/summary |
+| finance.write | 更新收款记录（仅团队版/律所版顶层拥有者） | PUT /finance/receiverecord/{id} |
 | dashboard.read | 每日概览 | GET /dashboard |
 | documents.generate | 生成文书模板 | POST /documents/generate (V1 保留) |
 | contracts.read | 查看合同列表 | GET /contracts |
